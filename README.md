@@ -101,6 +101,17 @@ from "understands the company's actual risk surface." See `server/src/services/v
 for the detection prompt and `client/src/pages/VendorRegister.jsx` for the UI. Clicking
 "Re-detect vendors" replaces AI-sourced rows and regenerates from the current profile.
 
+## Compliance Gap Analysis
+
+Each company page opens on a scorecard, not a form. `server/src/templates/gapChecklist.js`
+defines what "readiness" means per framework — a mix of items we can verify automatically
+(a matching document is `ready`, the vendor register is populated) and items we honestly
+can't check yet (asset register, security training records, backup/DR procedure, breach
+notification, DPIA) — those show as real gaps rather than being silently omitted, since an
+inflated score would be worse than an honest low one. The score updates live: generating a
+document or detecting vendors immediately re-scores the relevant framework, no page reload.
+See `server/src/services/gapAnalysis.js` for the scoring logic.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -108,6 +119,7 @@ for the detection prompt and `client/src/pages/VendorRegister.jsx` for the UI. C
 - DOCX export handles headings, paragraphs, bullet/numbered lists, tables, and blockquotes —
   not a full markdown spec
 - No built-in e-signature or audit-trail logging of who approved a document
-- No compliance score / gap analysis / dashboard yet, and no evidence upload or cloud
-  connectors (AWS/Azure/M365/GitHub) — tracked as the next phases toward a full compliance
-  platform rather than a document generator
+- No evidence upload/AI control mapping and no cloud connectors (AWS/Azure/M365/GitHub) yet —
+  tracked as the next phases toward a full compliance platform rather than a document generator
+- Gap analysis checklist items are curated, not a full ISO 27001 Annex A (93 controls) or
+  GDPR article-by-article mapping — it's honest about what it checks, not exhaustive

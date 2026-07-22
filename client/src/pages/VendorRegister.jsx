@@ -3,7 +3,7 @@ import { api } from '../api/client';
 
 const TIER_LABEL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
 
-export default function VendorRegister({ company, providers, provider, setProvider }) {
+export default function VendorRegister({ company, providers, provider, setProvider, onChange }) {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +20,7 @@ export default function VendorRegister({ company, providers, provider, setProvid
     try {
       const { vendors: rows } = await api.detectVendors(company.id, provider);
       setVendors(rows);
+      onChange?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -31,6 +32,7 @@ export default function VendorRegister({ company, providers, provider, setProvid
     try {
       await api.deleteVendor(id);
       setVendors((prev) => prev.filter((v) => v.id !== id));
+      onChange?.();
     } catch (err) {
       setError(err.message);
     }

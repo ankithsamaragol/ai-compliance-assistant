@@ -38,6 +38,8 @@ export const api = {
   createCompany: (payload) => request('/companies', { method: 'POST', body: payload }),
   getCompany: (id) => request(`/companies/${id}`),
 
+  getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
+
   listVendors: (companyId) => request(`/vendors?companyId=${companyId}`),
   detectVendors: (companyId, provider) => request('/vendors/detect', { method: 'POST', body: { companyId, provider } }),
   deleteVendor: (id) => request(`/vendors/${id}`, { method: 'DELETE' }),

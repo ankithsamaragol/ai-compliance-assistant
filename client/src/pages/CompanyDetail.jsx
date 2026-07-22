@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, getToken } from '../api/client';
 import VendorRegister from './VendorRegister';
+import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 
 export default function CompanyDetail({ company, onBack }) {
   const [catalog, setCatalog] = useState([]);
@@ -12,6 +13,7 @@ export default function CompanyDetail({ company, onBack }) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
   const [activeDoc, setActiveDoc] = useState(null);
+  const [gapRefreshKey, setGapRefreshKey] = useState(0);
 
   useEffect(() => {
     api.getCatalog().then((data) => {
@@ -42,6 +44,7 @@ export default function CompanyDetail({ company, onBack }) {
       const doc = await api.generateDocument(company.id, framework, docType, provider);
       setDocuments((prev) => [doc, ...prev]);
       setActiveDoc(doc);
+      setGapRefreshKey((k) => k + 1);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -76,6 +79,8 @@ export default function CompanyDetail({ company, onBack }) {
         <h2 style={{ marginTop: 0 }}>{company.name}</h2>
         <div className="meta">{company.industry} · {company.size_band} employees · {company.country}</div>
       </div>
+
+      <ComplianceGapAnalysis company={company} refreshKey={gapRefreshKey} />
 
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Generate a document</h3>
@@ -138,7 +143,13 @@ export default function CompanyDetail({ company, onBack }) {
       </div>
 
       {providers.length > 0 && (
-        <VendorRegister company={company} providers={providers} provider={provider} setProvider={setProvider} />
+        <VendorRegister
+          company={company}
+          providers={providers}
+          provider={provider}
+          setProvider={setProvider}
+          onChange={() => setGapRefreshKey((k) => k + 1)}
+        />
       )}
 
       {activeDoc?.content_md && (
