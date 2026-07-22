@@ -126,6 +126,18 @@ inflated score would be worse than an honest low one. The score updates live: ge
 document or detecting vendors immediately re-scores the relevant framework, no page reload.
 See `server/src/services/gapAnalysis.js` for the scoring logic.
 
+## Compliance Chat
+
+A per-company chat, grounded only in that company's real data — profile, vendor register, gap
+analysis scores, and document titles/status (not full document text, which isn't loaded into
+context; the assistant says so rather than guessing if asked about specific document wording).
+Multi-turn: recent history is replayed on each turn so follow-ups like "of the vendors you just
+listed, which is lowest risk?" work correctly. See `server/src/services/complianceChat.js` for
+context assembly and `client/src/pages/ComplianceChat.jsx` for the UI. Verified against a real
+company profile: correctly cited exact missing gap-analysis items, pulled a certification
+deadline from free-text notes rather than inventing one, and admitted when it didn't have
+enough context (e.g. the general vendor risk-tiering rubric) instead of fabricating an answer.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)

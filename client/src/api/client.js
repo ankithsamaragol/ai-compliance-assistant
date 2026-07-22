@@ -40,6 +40,10 @@ export const api = {
 
   getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
 
+  listChatMessages: (companyId) => request(`/chat?companyId=${companyId}`),
+  sendChatMessage: (companyId, message, provider) => request('/chat', { method: 'POST', body: { companyId, message, provider } }),
+  clearChat: (companyId) => request(`/chat?companyId=${companyId}`, { method: 'DELETE' }),
+
   listVendors: (companyId) => request(`/vendors?companyId=${companyId}`),
   detectVendors: (companyId, provider) => request('/vendors/detect', { method: 'POST', body: { companyId, provider } }),
   deleteVendor: (id) => request(`/vendors/${id}`, { method: 'DELETE' }),

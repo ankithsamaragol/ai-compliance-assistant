@@ -10,7 +10,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function callGroq({ apiKey, systemPrompt, userPrompt }) {
+async function callGroq({ apiKey, systemPrompt, userPrompt, history }) {
   const res = await fetch(BASE_URL, {
     method: 'POST',
     headers: {
@@ -22,6 +22,7 @@ async function callGroq({ apiKey, systemPrompt, userPrompt }) {
       max_tokens: 8000,
       messages: [
         { role: 'system', content: systemPrompt },
+        ...(history || []),
         { role: 'user', content: userPrompt },
       ],
     }),
@@ -43,21 +44,21 @@ async function callGroq({ apiKey, systemPrompt, userPrompt }) {
   return contentMd;
 }
 
-async function run({ systemPrompt, userPrompt }) {
+async function run({ systemPrompt, userPrompt, history }) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw Object.assign(new Error('GROQ_API_KEY is not set'), { status: 500 });
   }
 
   try {
-    const contentMd = await callGroq({ apiKey, systemPrompt, userPrompt });
+    const contentMd = await callGroq({ apiKey, systemPrompt, userPrompt, history });
     return { contentMd, model: `groq:${MODEL}` };
   } catch (err) {
     if (err.status !== 429) throw err;
     // Free-tier tokens-per-minute limit — Groq tells us exactly how long to wait, so retry once.
     const waitMs = parseRetrySeconds(err.rawBody) * 1000;
     await sleep(waitMs);
-    const contentMd = await callGroq({ apiKey, systemPrompt, userPrompt });
+    const contentMd = await callGroq({ apiKey, systemPrompt, userPrompt, history });
     return { contentMd, model: `groq:${MODEL}` };
   }
 }

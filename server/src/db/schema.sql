@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS vendors (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id          SERIAL PRIMARY KEY,
+  company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL,   -- user | assistant
+  content     TEXT NOT NULL,
+  provider    TEXT,            -- groq | ollama (null for user messages)
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_company ON chat_messages(company_id);

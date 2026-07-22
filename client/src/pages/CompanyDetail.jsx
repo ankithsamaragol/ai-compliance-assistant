@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, getToken } from '../api/client';
 import VendorRegister from './VendorRegister';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
+import ComplianceChat from './ComplianceChat';
 
 export default function CompanyDetail({ company, onBack }) {
   const [catalog, setCatalog] = useState([]);
@@ -81,6 +82,10 @@ export default function CompanyDetail({ company, onBack }) {
       </div>
 
       <ComplianceGapAnalysis company={company} refreshKey={gapRefreshKey} />
+
+      {providers.length > 0 && (
+        <ComplianceChat company={company} providers={providers} provider={provider} setProvider={setProvider} />
+      )}
 
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Generate a document</h3>

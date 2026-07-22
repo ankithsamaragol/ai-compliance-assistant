@@ -104,3 +104,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .tier-medium { color: #ffc107; }
   .tier-low { color: #6ad98e; }
 }
+
+.chat-window {
+  margin-top: 14px; max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+  padding: 4px 2px;
+}
+.chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+.chat-role { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 3px; }
+.chat-content { white-space: pre-wrap; }
+.chat-user { align-self: flex-end; background: var(--accent); color: white; }
+.chat-user .chat-role { color: rgba(255,255,255,0.75); }
+.chat-assistant { align-self: flex-start; background: rgba(127,127,127,0.08); }
