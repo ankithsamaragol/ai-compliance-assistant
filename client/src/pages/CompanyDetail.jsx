@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, getToken } from '../api/client';
+import VendorRegister from './VendorRegister';
 
 export default function CompanyDetail({ company, onBack }) {
   const [catalog, setCatalog] = useState([]);
@@ -135,6 +136,10 @@ export default function CompanyDetail({ company, onBack }) {
           {documents.length === 0 && <div className="meta">No documents generated yet.</div>}
         </div>
       </div>
+
+      {providers.length > 0 && (
+        <VendorRegister company={company} providers={providers} provider={provider} setProvider={setProvider} />
+      )}
 
       {activeDoc?.content_md && (
         <div className="panel">

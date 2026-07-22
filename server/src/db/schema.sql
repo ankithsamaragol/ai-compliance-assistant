@@ -18,10 +18,15 @@ CREATE TABLE IF NOT EXISTS companies (
   processes_eu_data BOOLEAN NOT NULL DEFAULT false,
   data_types      TEXT[] NOT NULL DEFAULT '{}',   -- e.g. {customer_pii, payment_data, health_data}
   cloud_providers TEXT[] NOT NULL DEFAULT '{}',   -- e.g. {aws, gcp, azure}
+  contact_email   TEXT,
+  tools_used      TEXT[] NOT NULL DEFAULT '{}',   -- e.g. {Stripe, GitHub, Google Workspace}
   notes           TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contact_email TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS tools_used TEXT[] NOT NULL DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS documents (
   id            SERIAL PRIMARY KEY,
@@ -40,5 +45,20 @@ CREATE TABLE IF NOT EXISTS documents (
 
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS provider TEXT;
 
+CREATE TABLE IF NOT EXISTS vendors (
+  id                    SERIAL PRIMARY KEY,
+  company_id            INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name                  TEXT NOT NULL,
+  category              TEXT NOT NULL,             -- hosting | payments | authentication | code_repository | email | analytics | other
+  risk_tier             TEXT NOT NULL,              -- critical | high | medium | low
+  reasoning             TEXT,
+  recommended_controls  TEXT[] NOT NULL DEFAULT '{}',
+  review_frequency      TEXT,                       -- e.g. "Every 6 months", "Annual"
+  source                TEXT NOT NULL DEFAULT 'ai',  -- ai | manual
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
+CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);

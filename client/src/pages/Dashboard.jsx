@@ -7,9 +7,9 @@ const CLOUD_OPTIONS = ['aws', 'gcp', 'azure', 'on_prem', 'other'];
 
 function emptyForm() {
   return {
-    name: '', industry: '', size_band: SIZE_BANDS[0], country: '',
+    name: '', industry: '', size_band: SIZE_BANDS[0], country: '', contact_email: '',
     processes_pii: false, processes_eu_data: false,
-    data_types: [], cloud_providers: [], notes: '',
+    data_types: [], cloud_providers: [], tools_used: '', notes: '',
   };
 }
 
@@ -33,7 +33,11 @@ export default function Dashboard({ onOpenCompany }) {
     setError('');
     setLoading(true);
     try {
-      const company = await api.createCompany(form);
+      const payload = {
+        ...form,
+        tools_used: form.tools_used.split(',').map((s) => s.trim()).filter(Boolean),
+      };
+      const company = await api.createCompany(payload);
       setCompanies((prev) => [company, ...prev]);
       setForm(emptyForm());
       setShowForm(false);
@@ -77,6 +81,15 @@ export default function Dashboard({ onOpenCompany }) {
               <div>
                 <label>Country</label>
                 <input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} required />
+              </div>
+              <div>
+                <label>Contact email</label>
+                <input
+                  type="email"
+                  placeholder="compliance@company.com"
+                  value={form.contact_email}
+                  onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
+                />
               </div>
             </div>
 
@@ -137,6 +150,14 @@ export default function Dashboard({ onOpenCompany }) {
                 </button>
               ))}
             </div>
+
+            <label>Tools & vendors used</label>
+            <div className="tag-hint">Comma-separated — e.g. Stripe, GitHub, Google Workspace, Slack</div>
+            <input
+              placeholder="Stripe, GitHub, Google Workspace"
+              value={form.tools_used}
+              onChange={(e) => setForm({ ...form, tools_used: e.target.value })}
+            />
 
             <label>Notes (optional)</label>
             <textarea

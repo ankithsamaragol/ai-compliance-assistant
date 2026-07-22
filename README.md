@@ -91,6 +91,16 @@ That schedules a backup every day at 2am. Verify it's installed with `crontab -l
 Add new document types by adding entries to `CATALOG` in `server/src/templates/catalog.js` —
 no other code changes needed.
 
+## Vendor Risk Register
+
+Beyond generating prose documents, the app reasons over a company's stated cloud providers
+and `tools_used` to build a structured, risk-scored vendor register — not another markdown
+document, but real rows in the `vendors` table rendered as an editable table (risk tier,
+reasoning, recommended controls, review cadence). This is what separates "writes documents"
+from "understands the company's actual risk surface." See `server/src/services/vendorRegister.js`
+for the detection prompt and `client/src/pages/VendorRegister.jsx` for the UI. Clicking
+"Re-detect vendors" replaces AI-sourced rows and regenerates from the current profile.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -98,3 +108,6 @@ no other code changes needed.
 - DOCX export handles headings, paragraphs, bullet/numbered lists, tables, and blockquotes —
   not a full markdown spec
 - No built-in e-signature or audit-trail logging of who approved a document
+- No compliance score / gap analysis / dashboard yet, and no evidence upload or cloud
+  connectors (AWS/Azure/M365/GitHub) — tracked as the next phases toward a full compliance
+  platform rather than a document generator

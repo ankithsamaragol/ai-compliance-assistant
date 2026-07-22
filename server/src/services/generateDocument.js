@@ -1,4 +1,5 @@
 const { getDocTypeDef } = require('../templates/catalog');
+const { companyProfileBlock } = require('./companyProfile');
 const groq = require('./providers/groq');
 const ollama = require('./providers/ollama');
 
@@ -11,23 +12,17 @@ assessment, and audit evidence documents for small businesses, startups, and man
 Rules:
 - Output well-structured GitHub-flavored Markdown only. No preamble, no "Here is your document" framing.
 - Tailor content to the specific company profile provided — do not write generic filler.
-- Where you must assume a fact not given in the profile, state the assumption inline as "[CONFIRM: ...]"
-  rather than inventing unverifiable specifics (names, dates, certificate numbers, exact tool versions).
+- Never invent specific unverifiable facts (names, dates, certificate numbers, exact tool versions) that
+  are not in the company profile.
+- Never use bracketed placeholders like "[CONFIRM: ...]", "[TBD]", "[INSERT ...]", or similar in the
+  output — these look broken to a reader. Instead, when a specific detail isn't in the company profile,
+  phrase the sentence generically so it reads naturally without it. Example: write "the designated
+  compliance contact" instead of "[CONFIRM: contact email]"; write "reviewed on a regular cadence"
+  instead of inventing or placeholder-ing a specific date.
 - Begin the document with a level-1 markdown heading containing the document title.
 - End every document with this exact line on its own: "> This document was AI-generated and must be reviewed by a qualified compliance professional or legal counsel before use."`;
 
-function companyProfileBlock(company) {
-  return `Company profile:
-- Name: ${company.name}
-- Industry: ${company.industry}
-- Size: ${company.size_band} employees
-- Country: ${company.country}
-- Processes personal data (PII): ${company.processes_pii ? 'yes' : 'no'}
-- Processes EU resident data: ${company.processes_eu_data ? 'yes' : 'no'}
-- Data types handled: ${(company.data_types || []).join(', ') || 'not specified'}
-- Cloud providers: ${(company.cloud_providers || []).join(', ') || 'not specified'}
-- Additional notes: ${company.notes || 'none'}`;
-}
+const PLACEHOLDER_PATTERN = /\[(CONFIRM|TBD|INSERT|FILL IN|PLACEHOLDER)[^\]]*\]/i;
 
 function listProviders() {
   return Object.entries(PROVIDERS).map(([key, p]) => ({
@@ -53,7 +48,18 @@ Task: Draft the "${def.title}" document for the ${def.framework} framework.
 
 ${def.instructions}`;
 
-  const { contentMd, model } = await impl.run({ systemPrompt: SYSTEM_PROMPT, userPrompt });
+  let { contentMd, model } = await impl.run({ systemPrompt: SYSTEM_PROMPT, userPrompt });
+
+  if (PLACEHOLDER_PATTERN.test(contentMd)) {
+    const retryPrompt = `${userPrompt}
+
+Your previous draft contained a bracketed placeholder (like "[CONFIRM: ...]"), which is not allowed.
+Rewrite the document so no bracketed placeholders appear anywhere — rephrase those spots generically
+instead, per the system rules.`;
+    const retry = await impl.run({ systemPrompt: SYSTEM_PROMPT, userPrompt: retryPrompt });
+    contentMd = retry.contentMd;
+    model = retry.model;
+  }
 
   return { title: def.title, contentMd, model, provider: providerKey };
 }
