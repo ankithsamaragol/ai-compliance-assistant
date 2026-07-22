@@ -135,6 +135,15 @@ per-framework before/after (`ISO 27001 40%→50%`), not a fabricated blended per
 an action pre-fills and scrolls to the right form instead of firing generation without
 confirmation, since that's a rate-limited/costed action the user should explicitly trigger.
 
+**Framework Translator (control mapping)**: `server/src/templates/controlMapping.js` holds a
+small, curated set of real cross-framework overlaps (e.g. an ISO 27001 Access Control Policy
+covers much of what CMMC's SSP needs for its Access Control domain) — deliberately not an
+exhaustive auto-generated matrix, since most cross-framework "equivalences" don't actually hold
+up (CMMC's incident response needs a DFARS 72-hour clause ISO's doesn't have; each mapping entry
+says so explicitly). This is purely informational — it never affects gap-analysis scoring, only
+surfaces "you already did most of this work" hints when one side is done and the other isn't, or
+"this is the identical gap in both frameworks" when neither side is done yet.
+
 ## Compliance Chat
 
 A per-company chat, grounded only in that company's real data — profile, vendor register, gap

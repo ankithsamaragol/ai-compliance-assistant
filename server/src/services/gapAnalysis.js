@@ -1,5 +1,6 @@
 const pool = require('../db/pool');
 const { GAP_CHECKLIST } = require('../templates/gapChecklist');
+const { computeCrossFrameworkHints } = require('../templates/controlMapping');
 
 function isSatisfied(check, ctx) {
   if (check.type === 'document') {
@@ -78,10 +79,14 @@ async function computeGapAnalysis(companyId) {
 
   const checklistByKey = GAP_CHECKLIST;
   const nextActions = computeNextActions(frameworks, checklistByKey);
+  const crossFrameworkHints = computeCrossFrameworkHints(frameworks);
 
   const openRisks = vendorRows.filter((v) => v.risk_tier === 'critical' || v.risk_tier === 'high').length;
 
-  return { frameworks, nextActions, openRisks, documentsReady: docs.length, vendorCount: ctx.vendorCount };
+  return {
+    frameworks, nextActions, crossFrameworkHints, openRisks,
+    documentsReady: docs.length, vendorCount: ctx.vendorCount,
+  };
 }
 
 module.exports = { computeGapAnalysis };

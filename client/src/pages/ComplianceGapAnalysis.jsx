@@ -73,6 +73,33 @@ export default function ComplianceGapAnalysis({ company, refreshKey, onSelectDoc
         </div>
       )}
 
+      {data.crossFrameworkHints?.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Reuse across frameworks</div>
+          <div className="meta" style={{ fontSize: 12, marginBottom: 8 }}>
+            Where work for one framework overlaps with another — informational only, doesn't affect scoring.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {data.crossFrameworkHints.map((hint, i) => (
+              <div key={i} className="reuse-hint-card">
+                {hint.type === 'reuse' ? (
+                  <div style={{ fontSize: 13 }}>
+                    <strong>{hint.have.label}</strong> <span className="meta">({hint.have.frameworkLabel}, already done)</span>
+                    {' '}→ helps with <strong>{hint.towards.label}</strong> <span className="meta">({hint.towards.frameworkLabel})</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13 }}>
+                    <strong>{hint.items[0].label}</strong> is missing in both{' '}
+                    <span className="meta">{hint.items.map((it) => it.frameworkLabel).join(' & ')}</span>
+                  </div>
+                )}
+                <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>{hint.note}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginTop: 20 }}>
         {data.frameworks.map((fw) => (
           <div key={fw.key} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>

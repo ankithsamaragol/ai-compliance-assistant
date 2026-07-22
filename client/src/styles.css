@@ -123,3 +123,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .next-action-lift {
   font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap;
 }
+
+.reuse-hint-card {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(127,127,127,0.04);
+}
