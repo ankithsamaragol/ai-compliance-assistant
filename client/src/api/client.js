@@ -39,6 +39,7 @@ export const api = {
   getCompany: (id) => request(`/companies/${id}`),
 
   getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
+  generateExecutiveReport: (companyId, provider) => request('/reports/executive', { method: 'POST', body: { companyId, provider } }),
 
   listChatMessages: (companyId) => request(`/chat?companyId=${companyId}`),
   sendChatMessage: (companyId, message, provider) => request('/chat', { method: 'POST', body: { companyId, message, provider } }),

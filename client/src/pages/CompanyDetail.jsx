@@ -96,6 +96,11 @@ export default function CompanyDetail({ company, onBack }) {
         refreshKey={gapRefreshKey}
         onSelectDocumentAction={jumpToGenerate}
         onSelectVendorAction={jumpToVendors}
+        provider={provider}
+        onReportGenerated={(doc) => {
+          setDocuments((prev) => [doc, ...prev]);
+          setActiveDoc(doc);
+        }}
       />
 
       {providers.length > 0 && (

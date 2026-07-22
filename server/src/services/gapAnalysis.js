@@ -50,7 +50,7 @@ function computeNextActions(frameworks, checklistByKey) {
 
 async function computeGapAnalysis(companyId) {
   const [{ rows: docs }, { rows: vendorRows }] = await Promise.all([
-    pool.query(`SELECT framework, doc_type FROM documents WHERE company_id = $1 AND status = 'ready'`, [companyId]),
+    pool.query(`SELECT framework, doc_type FROM documents WHERE company_id = $1 AND status = 'ready' AND framework != 'executive_report'`, [companyId]),
     pool.query(`SELECT risk_tier FROM vendors WHERE company_id = $1`, [companyId]),
   ]);
 

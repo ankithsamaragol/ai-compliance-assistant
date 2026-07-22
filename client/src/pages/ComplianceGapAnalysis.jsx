@@ -7,16 +7,33 @@ function scoreColor(score) {
   return 'var(--danger)';
 }
 
-export default function ComplianceGapAnalysis({ company, refreshKey, onSelectDocumentAction, onSelectVendorAction }) {
+export default function ComplianceGapAnalysis({
+  company, refreshKey, onSelectDocumentAction, onSelectVendorAction, provider, onReportGenerated,
+}) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [reportError, setReportError] = useState('');
   const [expanded, setExpanded] = useState({});
+  const [generatingReport, setGeneratingReport] = useState(false);
 
   function load() {
     api.getGapAnalysis(company.id).then(setData).catch((err) => setError(err.message));
   }
 
   useEffect(load, [company.id, refreshKey]);
+
+  async function generateReport() {
+    setReportError('');
+    setGeneratingReport(true);
+    try {
+      const doc = await api.generateExecutiveReport(company.id, provider);
+      onReportGenerated?.(doc);
+    } catch (err) {
+      setReportError(err.message);
+    } finally {
+      setGeneratingReport(false);
+    }
+  }
 
   if (error) return <div className="panel"><div className="error">{error}</div></div>;
   if (!data) return null;
@@ -25,8 +42,14 @@ export default function ComplianceGapAnalysis({ company, refreshKey, onSelectDoc
     <div className="panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ margin: 0 }}>Compliance Gap Analysis</h3>
-        <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={load}>Refresh</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={load}>Refresh</button>
+          <button style={{ marginTop: 0, fontSize: 12 }} onClick={generateReport} disabled={generatingReport}>
+            {generatingReport ? 'Generating…' : 'Executive report'}
+          </button>
+        </div>
       </div>
+      {reportError && <div className="error" style={{ marginTop: 8 }}>{reportError}</div>}
 
       <div style={{ display: 'flex', gap: 24, marginTop: 14, flexWrap: 'wrap' }}>
         <div>

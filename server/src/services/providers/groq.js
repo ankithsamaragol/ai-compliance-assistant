@@ -1,9 +1,17 @@
 const BASE_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
+const MAX_AUTO_RETRY_SECONDS = 30;
+
 function parseRetrySeconds(message) {
-  const match = /try again in ([\d.]+)s/i.exec(message || '');
-  return match ? Math.ceil(parseFloat(match[1])) + 1 : 20;
+  // Groq formats this as e.g. "try again in 30.12s" (per-minute limit) or
+  // "try again in 1h14m0.96s" (daily limit) — parse whichever components are present.
+  const match = /try again in\s+(?:([\d.]+)h)?\s*(?:([\d.]+)m)?\s*(?:([\d.]+)s)?/i.exec(message || '');
+  if (!match || (!match[1] && !match[2] && !match[3])) return 20;
+  const hours = parseFloat(match[1] || '0');
+  const minutes = parseFloat(match[2] || '0');
+  const seconds = parseFloat(match[3] || '0');
+  return Math.ceil(hours * 3600 + minutes * 60 + seconds) + 1;
 }
 
 function sleep(ms) {
@@ -55,9 +63,18 @@ async function run({ systemPrompt, userPrompt, history }) {
     return { contentMd, model: `groq:${MODEL}` };
   } catch (err) {
     if (err.status !== 429) throw err;
-    // Free-tier tokens-per-minute limit — Groq tells us exactly how long to wait, so retry once.
-    const waitMs = parseRetrySeconds(err.rawBody) * 1000;
-    await sleep(waitMs);
+    const waitSeconds = parseRetrySeconds(err.rawBody);
+    if (waitSeconds > MAX_AUTO_RETRY_SECONDS) {
+      // Daily quota exhausted, not the per-minute limit — waiting here would block the request
+      // for potentially hours. Fail fast with a clear message instead of hanging.
+      const isDailyLimit = /tokens per day/i.test(err.rawBody || '');
+      err.message = isDailyLimit
+        ? `Groq's daily free-tier quota is exhausted. Try again in ~${Math.ceil(waitSeconds / 60)} minutes, or switch to the local Ollama provider.`
+        : err.message;
+      throw err;
+    }
+    // Short per-minute limit — Groq tells us exactly how long to wait, so retry once.
+    await sleep(waitSeconds * 1000);
     const contentMd = await callGroq({ apiKey, systemPrompt, userPrompt, history });
     return { contentMd, model: `groq:${MODEL}` };
   }

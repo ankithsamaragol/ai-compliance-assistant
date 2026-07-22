@@ -156,6 +156,23 @@ company profile: correctly cited exact missing gap-analysis items, pulled a cert
 deadline from free-text notes rather than inventing one, and admitted when it didn't have
 enough context (e.g. the general vendor risk-tiering rubric) instead of fabricating an answer.
 
+## Executive Report
+
+One-click leadership summary composed entirely from data already computed above — gap scores,
+top (critical/high) vendor risks, ranked next-best-actions, and recent document activity — with
+a short AI-written headline paragraph on top putting the numbers in plain language. It's stored
+as a regular document (`framework: 'executive_report'`) so it reuses the existing docx export
+and Documents grid with no new UI needed; the gap-analysis "documents ready" count explicitly
+excludes it so the report doesn't inflate its own input data. See
+`server/src/services/executiveReport.js`.
+
+**Rate limits, for real**: building this surfaced Groq's free tier has two separate caps — a
+short per-minute limit (already handled with an automatic retry) and a 100k-token **daily** cap,
+which this session hit near the end of a long testing run. Retrying a multi-hour daily-limit wait
+inside an HTTP request isn't viable, so the provider now fails fast with a clear message ("try
+Ollama instead") rather than blocking. Worth knowing before demoing: heavy same-day testing on
+the free tier will eventually hit this, and Ollama is the fallback.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
