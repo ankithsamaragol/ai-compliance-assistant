@@ -115,3 +115,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .chat-user { align-self: flex-end; background: var(--accent); color: white; }
 .chat-user .chat-role { color: rgba(255,255,255,0.75); }
 .chat-assistant { align-self: flex-start; background: rgba(127,127,127,0.08); }
+
+.next-action-card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 8px; background: rgba(91,140,255,0.05);
+}
+.next-action-lift {
+  font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap;
+}

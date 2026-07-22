@@ -39,7 +39,7 @@ export default function VendorRegister({ company, providers, provider, setProvid
   }
 
   return (
-    <div className="panel">
+    <div className="panel" id="vendor-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 style={{ margin: 0 }}>Vendor Risk Register</h3>

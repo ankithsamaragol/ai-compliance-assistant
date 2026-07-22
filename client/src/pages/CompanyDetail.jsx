@@ -38,6 +38,16 @@ export default function CompanyDetail({ company, onBack }) {
   const currentFrameworkDocTypes = catalog.find((f) => f.key === framework)?.docTypes || [];
   const currentProvider = providers.find((p) => p.key === provider);
 
+  function jumpToGenerate(fw, dt) {
+    setFramework(fw);
+    setDocType(dt);
+    document.getElementById('generate-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function jumpToVendors() {
+    document.getElementById('vendor-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   async function generate() {
     setError('');
     setGenerating(true);
@@ -81,13 +91,18 @@ export default function CompanyDetail({ company, onBack }) {
         <div className="meta">{company.industry} · {company.size_band} employees · {company.country}</div>
       </div>
 
-      <ComplianceGapAnalysis company={company} refreshKey={gapRefreshKey} />
+      <ComplianceGapAnalysis
+        company={company}
+        refreshKey={gapRefreshKey}
+        onSelectDocumentAction={jumpToGenerate}
+        onSelectVendorAction={jumpToVendors}
+      />
 
       {providers.length > 0 && (
         <ComplianceChat company={company} providers={providers} provider={provider} setProvider={setProvider} />
       )}
 
-      <div className="panel">
+      <div className="panel" id="generate-panel">
         <h3 style={{ marginTop: 0 }}>Generate a document</h3>
         <div className="grid">
           <div>

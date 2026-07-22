@@ -7,7 +7,7 @@ function scoreColor(score) {
   return 'var(--danger)';
 }
 
-export default function ComplianceGapAnalysis({ company, refreshKey }) {
+export default function ComplianceGapAnalysis({ company, refreshKey, onSelectDocumentAction, onSelectVendorAction }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -42,6 +42,36 @@ export default function ComplianceGapAnalysis({ company, refreshKey }) {
           <div style={{ fontSize: 22, fontWeight: 700 }}>{data.vendorCount}</div>
         </div>
       </div>
+
+      {data.nextActions?.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Next best actions</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {data.nextActions.map((action) => (
+              <div
+                key={`${action.actionType}-${action.framework || ''}-${action.docType || ''}`}
+                className="next-action-card"
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{action.label}</div>
+                  <div className="meta" style={{ fontSize: 12, marginTop: 2 }}>
+                    {action.affects.map((a) => `${a.frameworkLabel} ${a.from}%→${a.to}%`).join('  ·  ')}
+                  </div>
+                </div>
+                <span className="next-action-lift">+{action.totalLift}pt{action.affects.length > 1 ? ` across ${action.affects.length}` : ''}</span>
+                <button
+                  style={{ marginTop: 0, fontSize: 12 }}
+                  onClick={() => (action.actionType === 'vendors'
+                    ? onSelectVendorAction?.()
+                    : onSelectDocumentAction?.(action.framework, action.docType))}
+                >
+                  {action.actionType === 'vendors' ? 'Go to vendors' : 'Generate this'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginTop: 20 }}>
         {data.frameworks.map((fw) => (

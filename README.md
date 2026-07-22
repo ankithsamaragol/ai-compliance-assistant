@@ -126,6 +126,15 @@ inflated score would be worse than an honest low one. The score updates live: ge
 document or detecting vendors immediately re-scores the relevant framework, no page reload.
 See `server/src/services/gapAnalysis.js` for the scoring logic.
 
+**Next best actions**: ranked purely from data already computed above — no extra AI call. The
+key insight: some gaps are shared across frameworks (e.g. "populate the vendor register" appears
+in all four framework checklists), so one action can lift multiple scores at once. Ranking
+accounts for this — completing the vendor register on a fresh company outranks any single
+document because it moves 4 frameworks simultaneously, not 1. Each action shows the honest
+per-framework before/after (`ISO 27001 40%→50%`), not a fabricated blended percentage. Clicking
+an action pre-fills and scrolls to the right form instead of firing generation without
+confirmation, since that's a rate-limited/costed action the user should explicitly trigger.
+
 ## Compliance Chat
 
 A per-company chat, grounded only in that company's real data — profile, vendor register, gap
