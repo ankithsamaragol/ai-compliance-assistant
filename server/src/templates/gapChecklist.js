@@ -30,6 +30,18 @@ const GAP_CHECKLIST = {
       { key: 'dpia', label: 'Data Protection Impact Assessment (DPIA)', check: { type: 'unavailable' } },
     ],
   },
+  cmmc: {
+    label: 'CMMC / NIST 800-171',
+    items: [
+      { key: 'ssp', label: 'System Security Plan (SSP)', check: { type: 'document', framework: 'cmmc', docType: 'system_security_plan' } },
+      { key: 'poam', label: 'Plan of Action & Milestones (POA&M)', check: { type: 'document', framework: 'cmmc', docType: 'poam' } },
+      { key: 'ir_plan', label: 'CMMC Incident Response Plan (72hr DFARS)', check: { type: 'document', framework: 'cmmc', docType: 'incident_response_plan_cmmc' } },
+      { key: 'vendor_register', label: 'Subcontractor / Vendor Flow-Down Register', check: { type: 'vendors' } },
+      { key: 'config_baseline', label: 'Configuration Management Baseline', check: { type: 'unavailable' } },
+      { key: 'access_evidence', label: 'Access Control Implementation Evidence', check: { type: 'unavailable' } },
+      { key: 'security_training', label: 'Security Awareness Training Records', check: { type: 'unavailable' } },
+    ],
+  },
 };
 
 module.exports = { GAP_CHECKLIST };

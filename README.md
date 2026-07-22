@@ -1,9 +1,16 @@
 # AI Compliance Assistant
 
-Generates first-draft compliance documents — ISO 27001 policies, GDPR policies,
-risk assessments, and audit evidence checklists — tailored to a company's profile.
-Every generated document is a starting point for human/legal review, not a finished,
+Generates first-draft compliance documents — ISO 27001 policies, GDPR policies, CMMC/NIST
+800-171 packages, risk assessments, and audit evidence checklists — tailored to a company's
+profile. Every generated document is a starting point for human/legal review, not a finished,
 certifiable artifact.
+
+**Positioning:** the SOC 2/ISO 27001 space (Vanta, Drata, Secureframe) is crowded and
+expensive ($15k+/year even for small teams). Two adjacent frameworks are real, current gaps:
+CMMC/NIST 800-171 for manufacturers in the defense supply chain (existing tools are template
+kits, not software — only 4% of contractors feel audit-ready), and AI governance (ISO 42001 /
+EU AI Act), where no incumbent has entrenched dominance yet since the EU AI Act only phases in
+through 2026. Both are additive to the existing catalog, not a rebuild.
 
 ## Stack
 
@@ -85,6 +92,8 @@ That schedules a backup every day at 2am. Verify it's installed with `crontab -l
 
 - **ISO 27001**: Information Security Policy, Access Control Policy, Incident Response Plan
 - **GDPR**: Privacy Policy, Data Processing Agreement, Record of Processing Activities (ROPA)
+- **CMMC / NIST 800-171** (manufacturers/defense supply chain): System Security Plan (SSP),
+  Plan of Action & Milestones (POA&M), CMMC Incident Response Plan (DFARS 72-hour reporting)
 - **Risk Assessment**: Risk Register, Vendor Risk Assessment
 - **Audit Evidence**: Evidence Checklist, Control Narrative Summary
 

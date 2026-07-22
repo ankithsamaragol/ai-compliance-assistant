@@ -111,6 +111,74 @@ Include a sample scoring rubric as a markdown table.`,
     },
   },
 
+  cmmc: {
+    label: 'CMMC / NIST 800-171',
+    docTypes: {
+      system_security_plan: {
+        title: 'System Security Plan (SSP)',
+        instructions: `Write a System Security Plan (SSP) for CMMC Level 2 / NIST SP 800-171 Rev 3 compliance — the
+cornerstone document every DoD supply-chain contractor needs. This should be a substantial document
+(target 2,000-3,500 words) with real, specific content, not a checklist of headers.
+
+Structure:
+1. System Description and Boundary (what systems/environments process, store, or transmit Controlled
+   Unclassified Information (CUI) — infer from the company's cloud providers, tools, and data types)
+2. Roles and Responsibilities (System Owner, ISSO/security lead, general workforce)
+For each of the 14 NIST SP 800-171 control families below, write a real paragraph describing how this
+specific company implements it — tailored to their profile, not generic boilerplate:
+3. Access Control — authentication, least privilege, session controls
+4. Awareness and Training — security training cadence and content
+5. Audit and Accountability — logging, log retention, review process
+6. Configuration Management — baseline configs, change control
+7. Identification and Authentication — MFA, credential management
+8. Incident Response — note the dedicated CMMC Incident Response Plan is a separate document; summarize briefly
+9. Maintenance — controlled maintenance of systems handling CUI
+10. Media Protection — handling/disposal of media containing CUI
+11. Personnel Security — screening, offboarding
+12. Physical Protection — facility access controls
+13. Risk Assessment — periodic risk assessment cadence (reference the Risk Register if one exists)
+14. Security Assessment — self-assessment/monitoring cadence
+15. System and Communications Protection — network segmentation, encryption in transit
+16. System and Information Integrity — patching, malware protection, monitoring
+
+Close with a note that this SSP addresses all 14 NIST SP 800-171 control families at a program level, and
+that a detailed control-by-control implementation matrix (all 110 requirements) should be maintained
+separately ahead of a formal C3PAO assessment.`,
+      },
+      poam: {
+        title: 'Plan of Action & Milestones (POA&M)',
+        instructions: `Produce a Plan of Action & Milestones (POA&M) — the document CMMC/NIST 800-171 assessors expect
+alongside the SSP, tracking every control that is not yet fully implemented. Format as a markdown table with
+columns: Item ID, NIST 800-171 Control Family, Weakness/Gap Description, Planned Remediation, Responsible
+Party, Target Completion Date, Status (Open/In Progress). Generate 10-15 realistic, specific gap rows plausible
+for this company's size and profile (typical real-world gaps: incomplete MFA rollout, insufficient log
+retention, informal configuration management, pending encryption-at-rest rollout, etc.) — do not invent gaps
+that contradict what the company profile states is already in place. Sort by control family.
+
+The Target Completion Date column is a structured data field, not prose — it must contain an actual
+relative timeframe (e.g. "30 days from plan approval", "Q2 2026", "90 days"), never a vague phrase like
+"reviewed on a regular cadence" or a placeholder. Pick a reasonable timeframe per item based on typical
+remediation effort for that control type (e.g. policy updates: 30 days; technical rollouts like MFA or
+encryption: 60-90 days).`,
+      },
+      incident_response_plan_cmmc: {
+        title: 'CMMC Incident Response Plan (DFARS 72-Hour Reporting)',
+        instructions: `Write an Incident Response Plan specifically meeting DFARS 252.204-7012 requirements for handling
+incidents involving Controlled Unclassified Information (CUI). This is distinct from a general ISO incident
+response plan — it must cover:
+1. Incident classification, with specific attention to identifying when CUI is involved
+2. The mandatory 72-hour reporting requirement to the DoD via DIBNet upon discovery of a cyber incident
+   affecting CUI, and what information that report must contain
+3. Media preservation requirement (a forensic image of affected systems/media must be preserved for at
+   least 90 days for potential DoD damage assessment)
+4. Internal escalation path and roles (incident lead, who has authority to engage DoD/legal)
+5. Coordination with any prime contractor if this company is a subcontractor
+6. Post-incident review and lessons-learned process
+Tailor the content to this company's actual systems/data, not generic text.`,
+      },
+    },
+  },
+
   audit_evidence: {
     label: 'Audit Evidence',
     docTypes: {
