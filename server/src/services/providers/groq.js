@@ -15,7 +15,7 @@ async function run({ systemPrompt, userPrompt }) {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 8000,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

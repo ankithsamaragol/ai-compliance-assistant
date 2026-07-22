@@ -7,10 +7,43 @@ const CATALOG = {
     docTypes: {
       information_security_policy: {
         title: 'Information Security Policy',
-        instructions: `Write a top-level Information Security Policy aligned with ISO/IEC 27001:2022 clause 5.2.
-Cover: purpose and scope, management commitment, information security objectives,
-roles and responsibilities (including an Information Security Officer role),
-policy review cadence, and consequences of non-compliance. Use numbered sections.`,
+        instructions: `Write a comprehensive, master Information Security Policy aligned with ISO/IEC 27001:2022 clause 5.2.
+This is the umbrella policy a real ISO 27001 auditor expects to see — it should read as a substantial,
+multi-page policy document (target 2,500-4,000 words), not an executive summary. Use numbered sections
+with real, specific, actionable content in each — not one-line placeholders.
+
+Required sections, each with genuine substance:
+1. Purpose and Scope
+2. Management Commitment
+3. Information Security Objectives
+4. Roles and Responsibilities (Information Security Officer, department heads, all employees)
+5. Password and Authentication Requirements (minimum length/complexity, rotation policy, MFA requirements
+   for all systems handling sensitive data, prohibition on shared/reused credentials)
+6. Encryption Requirements (data at rest and in transit — specify TLS for transit, AES-256 or equivalent
+   at rest, key management principles)
+7. Asset Management (hardware/software inventory, asset ownership, classification of information assets
+   by sensitivity, secure disposal/decommissioning)
+8. Acceptable Use (permitted/prohibited use of company systems, personal device use, internet/email use,
+   software installation restrictions)
+9. Access Management (summary of least-privilege and provisioning principles — note that the detailed
+   Access Control Policy is a separate, dedicated document covering this in full)
+10. Physical Security (access to offices/data centers, visitor procedures, clear desk/clear screen policy,
+    secure disposal of physical media)
+11. Logging and Monitoring (what gets logged, log retention period, review cadence, alerting for
+    anomalous activity)
+12. Vendor and Third-Party Management (summary of due diligence and risk-tiering principles — note that
+    detailed vendor risk assessment is tracked separately in the Vendor Risk Register/Assessment)
+13. Backup Policy (backup frequency, retention, encryption of backups, restore testing cadence)
+14. Incident Reporting (how employees report suspected incidents, escalation path — note that the
+    detailed Incident Response Plan is a separate, dedicated document)
+15. Business Continuity (high-level continuity/disaster recovery commitment and RTO/RPO philosophy)
+16. Policy Review Cadence
+17. Consequences of Non-Compliance
+
+Where this company already has a dedicated Access Control Policy, Incident Response Plan, or Vendor Risk
+Assessment generated separately, keep those sections here concise and cross-reference the dedicated
+document by name rather than duplicating it in full — but every other section must have real, specific,
+non-generic content tailored to this company's profile.`,
       },
       access_control_policy: {
         title: 'Access Control Policy',

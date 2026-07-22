@@ -8,7 +8,7 @@ async function run({ systemPrompt, userPrompt }) {
     body: JSON.stringify({
       model: MODEL,
       stream: false,
-      options: { num_predict: 4096 },
+      options: { num_predict: 8000 },
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
