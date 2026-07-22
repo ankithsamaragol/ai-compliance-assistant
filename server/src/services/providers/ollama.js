@@ -30,4 +30,9 @@ async function run({ systemPrompt, userPrompt }) {
   return { contentMd, model: `ollama:${MODEL}` };
 }
 
-module.exports = { run, label: 'Local (Ollama)' };
+module.exports = {
+  run,
+  label: 'Local (Ollama)',
+  local: true,
+  dataNotice: 'Runs entirely on this machine — company profile data never leaves the local system.',
+};

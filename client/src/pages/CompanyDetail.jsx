@@ -32,6 +32,7 @@ export default function CompanyDetail({ company, onBack }) {
   }
 
   const currentFrameworkDocTypes = catalog.find((f) => f.key === framework)?.docTypes || [];
+  const currentProvider = providers.find((p) => p.key === provider);
 
   async function generate() {
     setError('');
@@ -101,6 +102,11 @@ export default function CompanyDetail({ company, onBack }) {
             </select>
           </div>
         </div>
+        {currentProvider?.dataNotice && (
+          <div className={`data-notice ${currentProvider.local ? 'data-notice-local' : 'data-notice-cloud'}`}>
+            {currentProvider.local ? '🔒' : '☁️'} {currentProvider.dataNotice}
+          </div>
+        )}
         {error && <div className="error">{error}</div>}
         <button onClick={generate} disabled={generating || !framework || !docType}>
           {generating ? 'Generating…' : 'Generate document'}

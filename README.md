@@ -52,12 +52,33 @@ npm run dev             # http://localhost:5300
 - `/api/auth/login` and `/api/auth/signup` are rate-limited (10 requests / 15 min / IP)
   against brute-force and mass signup
 
+## Backups
+
+Company and document data lives only in your local Postgres database — there is no cloud
+copy. Back it up:
+
+```bash
+server/scripts/backup.sh   # dumps to server/backups/, keeps the last 30
+```
+
+To restore: `pg_restore -d <database_name> server/backups/backup_<timestamp>.dump`
+
+**To automate daily backups (one-time setup, run yourself):** this session couldn't write
+to crontab directly — macOS requires Full Disk Access for that, which a sandboxed process
+doesn't have. Run this once in your own Terminal:
+
+```bash
+(crontab -l 2>/dev/null; echo "0 2 * * * /Users/ankithsa/ai-compliance-assistant/server/scripts/backup.sh >> /Users/ankithsa/ai-compliance-assistant/server/backups/backup.log 2>&1") | crontab -
+```
+
+That schedules a backup every day at 2am. Verify it's installed with `crontab -l`.
+
 ## How it works
 
 1. Create a company profile (industry, size, data types handled, cloud providers, etc.)
 2. Pick a framework (ISO 27001, GDPR, Risk Assessment, Audit Evidence) and a document type
-3. The server builds a prompt from `server/src/templates/catalog.js`, calls the local
-   Ollama model, and stores the result as markdown
+3. The server builds a prompt from `server/src/templates/catalog.js`, calls the selected
+   provider (Groq or local Ollama), and stores the result as markdown
 4. Preview in-browser or download as a `.docx`
 
 ## Document catalog

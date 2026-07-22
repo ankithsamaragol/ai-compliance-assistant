@@ -5,6 +5,7 @@ export default function Auth({ onAuthed }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -13,8 +14,9 @@ export default function Auth({ onAuthed }) {
     setError('');
     setLoading(true);
     try {
-      const fn = mode === 'login' ? api.login : api.signup;
-      const { token, account } = await fn(email, password);
+      const { token, account } = mode === 'login'
+        ? await api.login(email, password)
+        : await api.signup(email, password, inviteCode);
       setToken(token);
       onAuthed(account);
     } catch (err) {
@@ -32,6 +34,12 @@ export default function Auth({ onAuthed }) {
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <label>Password</label>
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+        {mode === 'signup' && (
+          <>
+            <label>Invite code</label>
+            <input value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} required />
+          </>
+        )}
         {error && <div className="error">{error}</div>}
         <button type="submit" disabled={loading}>
           {loading ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Sign up'}

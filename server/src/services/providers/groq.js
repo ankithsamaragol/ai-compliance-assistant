@@ -37,4 +37,9 @@ async function run({ systemPrompt, userPrompt }) {
   return { contentMd, model: `groq:${MODEL}` };
 }
 
-module.exports = { run, label: 'Groq (cloud)' };
+module.exports = {
+  run,
+  label: 'Groq (cloud)',
+  local: false,
+  dataNotice: 'Company profile data is sent to Groq’s cloud API (a third-party AI processor) to generate this document.',
+};

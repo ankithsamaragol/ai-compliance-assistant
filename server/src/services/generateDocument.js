@@ -30,7 +30,9 @@ function companyProfileBlock(company) {
 }
 
 function listProviders() {
-  return Object.entries(PROVIDERS).map(([key, p]) => ({ key, label: p.label }));
+  return Object.entries(PROVIDERS).map(([key, p]) => ({
+    key, label: p.label, local: p.local, dataNotice: p.dataNotice,
+  }));
 }
 
 async function generateDocument({ company, framework, docType, provider }) {

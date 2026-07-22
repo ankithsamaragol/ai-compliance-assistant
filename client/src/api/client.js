@@ -31,7 +31,7 @@ async function request(path, { method = 'GET', body, raw = false } = {}) {
 }
 
 export const api = {
-  signup: (email, password) => request('/auth/signup', { method: 'POST', body: { email, password } }),
+  signup: (email, password, inviteCode) => request('/auth/signup', { method: 'POST', body: { email, password, inviteCode } }),
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
 
   listCompanies: () => request('/companies'),

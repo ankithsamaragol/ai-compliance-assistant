@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 
@@ -14,11 +15,22 @@ const authLimiter = rateLimit({
   message: { error: 'Too many attempts. Try again later.' },
 });
 
+function isValidInviteCode(submitted) {
+  const expected = process.env.INVITE_CODE;
+  if (!expected) return true; // no code configured = signup open
+  const a = Buffer.from(String(submitted || ''));
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 router.post('/signup', authLimiter, async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, inviteCode } = req.body;
     if (!email || !password || password.length < 8) {
       return res.status(400).json({ error: 'Email and a password of at least 8 characters are required' });
+    }
+    if (!isValidInviteCode(inviteCode)) {
+      return res.status(403).json({ error: 'Invalid or missing invite code' });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
