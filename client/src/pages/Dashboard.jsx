@@ -9,7 +9,7 @@ function emptyForm() {
   return {
     name: '', industry: '', size_band: SIZE_BANDS[0], country: '', contact_email: '',
     processes_pii: false, processes_eu_data: false,
-    data_types: [], cloud_providers: [], tools_used: '', notes: '',
+    data_types: [], cloud_providers: [], tools_used: '', ai_systems_used: '', notes: '',
   };
 }
 
@@ -36,6 +36,7 @@ export default function Dashboard({ onOpenCompany }) {
       const payload = {
         ...form,
         tools_used: form.tools_used.split(',').map((s) => s.trim()).filter(Boolean),
+        ai_systems_used: form.ai_systems_used.split(',').map((s) => s.trim()).filter(Boolean),
       };
       const company = await api.createCompany(payload);
       setCompanies((prev) => [company, ...prev]);
@@ -157,6 +158,14 @@ export default function Dashboard({ onOpenCompany }) {
               placeholder="Stripe, GitHub, Google Workspace"
               value={form.tools_used}
               onChange={(e) => setForm({ ...form, tools_used: e.target.value })}
+            />
+
+            <label>AI systems used or built</label>
+            <div className="tag-hint">Comma-separated — e.g. GPT-4 API customer chatbot, internal fraud-detection model</div>
+            <input
+              placeholder="GPT-4 API customer chatbot, internal recommendation model"
+              value={form.ai_systems_used}
+              onChange={(e) => setForm({ ...form, ai_systems_used: e.target.value })}
             />
 
             <label>Notes (optional)</label>

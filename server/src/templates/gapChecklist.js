@@ -42,6 +42,18 @@ const GAP_CHECKLIST = {
       { key: 'security_training', label: 'Security Awareness Training Records', check: { type: 'unavailable' } },
     ],
   },
+  iso42001: {
+    label: 'ISO 42001 / AI Governance',
+    items: [
+      { key: 'aims_policy', label: 'AI Management System Policy', check: { type: 'document', framework: 'iso42001', docType: 'ai_management_system_policy' } },
+      { key: 'ai_risk_assessment', label: 'AI Risk & Impact Assessment', check: { type: 'document', framework: 'iso42001', docType: 'ai_risk_assessment' } },
+      { key: 'eu_ai_act', label: 'EU AI Act Readiness Statement', check: { type: 'document', framework: 'iso42001', docType: 'eu_ai_act_readiness' } },
+      { key: 'vendor_register', label: 'Third-Party AI/Foundation Model Register', check: { type: 'vendors' } },
+      { key: 'bias_testing', label: 'Bias/Fairness Testing Evidence', check: { type: 'unavailable' } },
+      { key: 'human_oversight_log', label: 'Human Oversight Checkpoint Log', check: { type: 'unavailable' } },
+      { key: 'model_monitoring', label: 'Post-Deployment Model Monitoring Records', check: { type: 'unavailable' } },
+    ],
+  },
 };
 
 module.exports = { GAP_CHECKLIST };

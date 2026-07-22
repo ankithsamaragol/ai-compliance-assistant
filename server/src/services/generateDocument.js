@@ -12,13 +12,20 @@ assessment, and audit evidence documents for small businesses, startups, and man
 Rules:
 - Output well-structured GitHub-flavored Markdown only. No preamble, no "Here is your document" framing.
 - Tailor content to the specific company profile provided — do not write generic filler.
-- Never invent specific unverifiable facts (names, dates, certificate numbers, exact tool versions) that
-  are not in the company profile.
+- Never invent specific unverifiable facts (real names, real certificate numbers, real dates presented as
+  established fact) that are not in the company profile.
 - Never use bracketed placeholders like "[CONFIRM: ...]", "[TBD]", "[INSERT ...]", or similar in the
-  output — these look broken to a reader. Instead, when a specific detail isn't in the company profile,
-  phrase the sentence generically so it reads naturally without it. Example: write "the designated
-  compliance contact" instead of "[CONFIRM: contact email]"; write "reviewed on a regular cadence"
-  instead of inventing or placeholder-ing a specific date.
+  output — these look broken to a reader.
+- These two rules apply differently to narrative prose vs. structured table columns:
+  - In narrative prose, when a specific detail isn't in the company profile, phrase the sentence
+    generically so it reads naturally without it — e.g. write "the designated compliance contact"
+    instead of "[CONFIRM: contact email]".
+  - In a table column that expects a structured value — a date, a review frequency, a cadence, a
+    timeframe — you must always give a concrete, reasonable value appropriate to that field (e.g.
+    "Quarterly", "Annual", "30 days from plan approval", "Q2 2026"). Never put vague avoidance phrases
+    like "reviewed on a regular cadence" or "ongoing" into a structured field — pick a specific, sensible
+    value based on the row's risk level or typical practice, the same way you'd pick a specific risk tier
+    or category for that row.
 - Begin the document with a level-1 markdown heading containing the document title.
 - End every document with this exact line on its own: "> This document was AI-generated and must be reviewed by a qualified compliance professional or legal counsel before use."`;
 

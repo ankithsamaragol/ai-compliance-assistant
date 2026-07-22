@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS companies (
   cloud_providers TEXT[] NOT NULL DEFAULT '{}',   -- e.g. {aws, gcp, azure}
   contact_email   TEXT,
   tools_used      TEXT[] NOT NULL DEFAULT '{}',   -- e.g. {Stripe, GitHub, Google Workspace}
+  ai_systems_used TEXT[] NOT NULL DEFAULT '{}',   -- e.g. {"GPT-4 API customer chatbot", "internal fraud-detection model"}
   notes           TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS companies (
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS contact_email TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS tools_used TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ai_systems_used TEXT[] NOT NULL DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS documents (
   id            SERIAL PRIMARY KEY,

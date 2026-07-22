@@ -198,6 +198,79 @@ inferring plausible implementation detail from the company profile and marking a
       },
     },
   },
+
+  iso42001: {
+    label: 'ISO 42001 / AI Governance',
+    docTypes: {
+      ai_management_system_policy: {
+        title: 'AI Management System Policy',
+        instructions: `Write a comprehensive AI Management System (AIMS) Policy aligned with ISO/IEC 42001:2023, the
+certifiable standard for AI governance. This should be a substantial policy (target 2,000-3,000 words) with
+real, specific content per section — this is becoming a genuine differentiator: ISO 42001 certification is
+appearing in enterprise RFPs as a trust signal, and almost no company has caught up to it yet.
+
+Required sections, each with real substance tailored to the company's stated AI systems:
+1. Purpose and Scope (which AI systems this policy covers — name them from the company profile)
+2. Management Commitment to responsible AI
+3. AI Governance Objectives (safety, fairness, transparency, accountability)
+4. Roles and Responsibilities (an AI Governance Officer/committee role, escalation path)
+5. AI System Inventory and Classification (list the company's stated AI systems, and for each, note
+   whether the company is acting as "provider" — building/customizing the model — or "deployer" — using
+   a third-party model as-is — since EU AI Act obligations differ by role)
+6. Risk-Based Approach (how AI systems are risk-tiered — reference that a detailed AI Risk & Impact
+   Assessment is a separate, dedicated document)
+7. Data Governance for AI (training/fine-tuning data quality, bias testing, data minimization)
+8. Human Oversight (what human-in-the-loop or human-review checkpoints exist for AI-driven decisions)
+9. Transparency and Explainability (how users are informed they're interacting with an AI system, to what
+   degree AI decisions are explainable)
+10. Third-Party and Foundation Model Usage (due diligence on external AI providers/APIs used)
+11. Incident Management for AI Systems (how AI-specific incidents — e.g. harmful outputs, bias incidents,
+    model drift — are reported and handled)
+12. Monitoring and Continuous Improvement (post-deployment monitoring cadence for AI system performance/drift)
+13. Policy Review Cadence
+14. Consequences of Non-Compliance
+
+If the company profile lists no specific AI systems, note plainly that this policy establishes the
+governance framework in advance of AI adoption, without inventing systems that don't exist.`,
+      },
+      ai_risk_assessment: {
+        title: 'AI Risk & Impact Assessment',
+        instructions: `Produce an AI Risk & Impact Assessment as a markdown table, one row per AI system the company
+uses or builds (from the company profile's AI systems list). Columns: AI System, Role (Provider/Deployer),
+EU AI Act Risk Tier (Unacceptable/High-Risk/Limited-Risk/Minimal-Risk — classify based on the system's actual
+use case, e.g. a customer support chatbot is typically limited-risk requiring transparency disclosure, while
+an automated hiring/credit-decision system would be high-risk), Potential Harms (bias/discrimination, privacy,
+safety, misinformation — whichever are actually relevant to that system), Mitigations, Human Oversight Measure,
+Review Frequency. If the company profile lists no AI systems, state clearly that no AI risk assessment is
+required at this time rather than inventing hypothetical systems.`,
+      },
+      eu_ai_act_readiness: {
+        title: 'EU AI Act Readiness Statement',
+        instructions: `Write an EU AI Act Readiness Statement assessing this company's obligations under the EU AI Act,
+which is phasing in through 2026. Structure:
+1. Applicability (does the company offer AI systems to, or are its AI systems used by, people in the EU —
+   infer from the company profile's country and processes_eu_data fields; state clearly if the Act likely
+   doesn't apply and explain why, rather than assuming it does)
+2. Role Determination (provider vs. deployer for each AI system named in the profile). Apply this
+   distinction precisely: a company is a "provider" only if it develops an AI system or has one developed
+   and places it on the market/into service under its own name — including substantially modifying or
+   fine-tuning a third-party model. A company that uses a third-party AI system or API (e.g. calling
+   OpenAI's GPT-4 API) without substantially modifying the underlying model is a "deployer" of that
+   system, even though it built the product around it. An internally-built model the company trained
+   itself is typically "provider". Get this right and be consistent with how you'd classify the same
+   system in a separate AI Risk Assessment document — don't default everything to "provider".
+3. Risk Tier Classification for each AI system and the resulting obligations (e.g. limited-risk systems like
+   chatbots mainly require disclosure that users are interacting with AI; high-risk systems require a
+   conformity assessment, technical documentation, and human oversight measures)
+4. Transparency Obligations (what disclosures, if any, need to be added to user-facing products)
+5. Technical Documentation Status (what documentation the company should maintain — reference that ISO/IEC
+   42001 provides a certifiable framework for organizing this evidence)
+6. Recommended Next Steps, prioritized
+Note explicitly that ISO 42001 is not yet formally harmonized as an EU AI Act standard as of this writing, so
+certification supports but does not by itself guarantee legal compliance — this must be stated, not omitted.`,
+      },
+    },
+  },
 };
 
 function listFrameworks() {

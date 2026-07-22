@@ -10,6 +10,7 @@ function companyProfileBlock(company) {
 - Data types handled: ${(company.data_types || []).join(', ') || 'not specified'}
 - Cloud providers: ${(company.cloud_providers || []).join(', ') || 'not specified'}
 - Tools & vendors used: ${(company.tools_used || []).join(', ') || 'not specified'}
+- AI systems used or built: ${(company.ai_systems_used || []).join(', ') || 'none specified'}
 - Additional notes: ${company.notes || 'none'}`;
 }
 

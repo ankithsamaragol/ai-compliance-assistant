@@ -19,7 +19,8 @@ router.post('/', async (req, res, next) => {
     const {
       name, industry, size_band: sizeBand, country, contact_email: contactEmail,
       processes_pii: processesPii, processes_eu_data: processesEuData,
-      data_types: dataTypes, cloud_providers: cloudProviders, tools_used: toolsUsed, notes,
+      data_types: dataTypes, cloud_providers: cloudProviders, tools_used: toolsUsed,
+      ai_systems_used: aiSystemsUsed, notes,
     } = req.body;
 
     if (!name || !industry || !sizeBand || !country) {
@@ -28,12 +29,12 @@ router.post('/', async (req, res, next) => {
 
     const { rows } = await pool.query(
       `INSERT INTO companies
-        (account_id, name, industry, size_band, country, contact_email, processes_pii, processes_eu_data, data_types, cloud_providers, tools_used, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        (account_id, name, industry, size_band, country, contact_email, processes_pii, processes_eu_data, data_types, cloud_providers, tools_used, ai_systems_used, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [
         req.account.id, name, industry, sizeBand, country, contactEmail || null,
         !!processesPii, !!processesEuData,
-        dataTypes || [], cloudProviders || [], toolsUsed || [], notes || null,
+        dataTypes || [], cloudProviders || [], toolsUsed || [], aiSystemsUsed || [], notes || null,
       ],
     );
     res.status(201).json(rows[0]);

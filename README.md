@@ -96,6 +96,11 @@ That schedules a backup every day at 2am. Verify it's installed with `crontab -l
   Plan of Action & Milestones (POA&M), CMMC Incident Response Plan (DFARS 72-hour reporting)
 - **Risk Assessment**: Risk Register, Vendor Risk Assessment
 - **Audit Evidence**: Evidence Checklist, Control Narrative Summary
+- **ISO 42001 / AI Governance**: AI Management System Policy, AI Risk & Impact Assessment
+  (per-AI-system risk tiering under the EU AI Act), EU AI Act Readiness Statement — driven by
+  a company's stated `ai_systems_used`, correctly distinguishing "provider" (built/fine-tuned
+  the model) from "deployer" (uses a third-party API as-is), which the model got wrong by
+  default until the prompt explicitly required the distinction
 
 Add new document types by adding entries to `CATALOG` in `server/src/templates/catalog.js` —
 no other code changes needed.
