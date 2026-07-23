@@ -59,13 +59,23 @@ async function selectOrg(accessToken) {
   return { org, note };
 }
 
+// No organization to check. A personal-account 2FA fallback was tried and reverted: GitHub's
+// API doesn't expose an individual's 2FA status to OAuth Apps (confirmed live against GET
+// /user, which returns no `two_factor_authentication` field at all) — only org-wide enforcement
+// policy, which is a setting the org controls, not private user data. So there's honestly
+// nothing this connector can check without an organization.
+function noOrgResult(note) {
+  const summary = `${note} GitHub also doesn't expose an individual account's own 2FA status via its API, so there's no fallback signal to check here either.`;
+  return { orgLogin: null, summary, mapped_controls: [] };
+}
+
 // Pulls the current compliance-relevant facts and shapes them exactly like an evidenceIntelligence
 // result (summary + mapped_controls), so gap-analysis scoring treats connector-derived evidence
 // identically to AI-analyzed uploads.
-async function syncOrgSignals(accessToken) {
+async function syncSignals(accessToken) {
   const { org, note } = await selectOrg(accessToken);
   if (!org) {
-    return { orgLogin: null, summary: note, mapped_controls: [] };
+    return noOrgResult(note);
   }
 
   const twoFactorEnforced = org.two_factor_requirement_enabled;
@@ -89,4 +99,4 @@ async function syncOrgSignals(accessToken) {
   return { orgLogin: org.login, summary, mapped_controls };
 }
 
-module.exports = { getAuthorizeUrl, exchangeCodeForToken, syncOrgSignals };
+module.exports = { getAuthorizeUrl, exchangeCodeForToken, syncSignals };

@@ -71,7 +71,7 @@ router.post('/github/sync', requireAuth, async (req, res, next) => {
 
     try {
       const accessToken = decrypt(connector.access_token_encrypted);
-      const signals = await github.syncOrgSignals(accessToken);
+      const signals = await github.syncSignals(accessToken);
       await upsertGithubEvidence(companyId, signals);
       const { rows: updated } = await pool.query(
         `UPDATE connectors SET external_account = $1, status = 'connected', error = NULL, last_synced_at = now()
@@ -128,7 +128,7 @@ router.get('/github/callback', async (req, res) => {
     if (!company) return backToApp('error');
 
     const { accessToken, scopes } = await github.exchangeCodeForToken(code);
-    const signals = await github.syncOrgSignals(accessToken);
+    const signals = await github.syncSignals(accessToken);
 
     await pool.query(
       `INSERT INTO connectors (company_id, provider, external_account, access_token_encrypted, scopes, status, last_synced_at)

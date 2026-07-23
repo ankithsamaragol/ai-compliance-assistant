@@ -248,6 +248,14 @@ scoring, the checklist, and the dashboard all treat a connector fact identically
 document — verified end-to-end: connecting and syncing moved CMMC's "Access Control Implementation
 Evidence" item the same way an uploaded PDF would.
 
+**No org on the account, no signal — and that's a real API limit, not a bug**: if the connected
+account isn't part of a GitHub organization, there's genuinely nothing to check. A personal-account
+2FA fallback (`GET /user`'s `two_factor_authentication` field) was tried and reverted after live
+testing showed GitHub simply doesn't return that field to OAuth Apps anymore — it exposes org-wide
+enforcement *policy* (something the org controls) but not an individual's own 2FA status (private
+user data). The connector reports this honestly ("no org found, and no fallback signal exists")
+rather than guessing or silently succeeding.
+
 **Security specifics**:
 - OAuth tokens are encrypted at rest (AES-256-GCM, `CONNECTOR_ENCRYPTION_KEY`) — never stored in
   plaintext — via `server/src/services/crypto.js`.
