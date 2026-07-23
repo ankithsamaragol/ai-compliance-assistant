@@ -35,8 +35,23 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
+function greetingWord() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+const STAT_COLORS = [
+  { bg: 'rgba(122,140,255,0.14)', color: '#7a8cff' },
+  { bg: 'rgba(255,170,80,0.16)', color: '#e08a2e' },
+  { bg: 'rgba(91,140,255,0.14)', color: 'var(--accent)' },
+  { bg: 'rgba(122,200,150,0.16)', color: '#3ba25f' },
+  { bg: 'rgba(180,130,255,0.16)', color: '#9a6ee0' },
+];
+
 export default function ComplianceGapAnalysis({
-  company, refreshKey, onSelectDocumentAction, onSelectVendorAction, onNavigateToChat,
+  company, userName, refreshKey, onSelectDocumentAction, onSelectVendorAction, onNavigateToChat,
   provider, onReportGenerated, documents,
 }) {
   const [data, setData] = useState(null);
@@ -86,10 +101,17 @@ export default function ComplianceGapAnalysis({
     ...vendors.map((v) => ({ type: 'vendor', title: `${v.name} added to vendor register`, meta: `${TIER_LABEL[v.risk_tier]} risk`, time: v.created_at })),
   ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 6);
 
+  const firstName = userName ? userName.split(' ')[0] : '';
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <h2 className="section-heading" style={{ marginBottom: 0 }}>Dashboard</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
+        <div>
+          <h2 className="section-heading" style={{ marginBottom: 4 }}>
+            {greetingWord()}{firstName ? `, ${firstName}` : ''} 👋
+          </h2>
+          <div className="meta">Here's what's happening with {company.name} today.</div>
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={load}>Refresh</button>
           <button style={{ marginTop: 0, fontSize: 12 }} onClick={generateReport} disabled={generatingReport}>
@@ -119,7 +141,10 @@ export default function ComplianceGapAnalysis({
         </div>
 
         <div className="hero-ai-card">
-          <div className="hero-ai-card-title"><IconSparkle size={18} /> AI Compliance Officer</div>
+          <div className="hero-ai-card-title">
+            <span className="hero-ai-badge"><IconSparkle size={18} /></span>
+            AI Compliance Officer
+          </div>
           <div className="hero-ai-message">
             Ask anything about {company.name}'s vendors, gaps, and compliance status — grounded in the real data on file.
           </div>
@@ -136,23 +161,23 @@ export default function ComplianceGapAnalysis({
 
       <div className="stat-tiles">
         <div className="stat-tile">
-          <div className="stat-tile-icon"><IconShieldCheck size={18} /></div>
+          <div className="stat-tile-icon" style={{ background: STAT_COLORS[0].bg, color: STAT_COLORS[0].color }}><IconShieldCheck size={18} /></div>
           <div><div className="stat-tile-value">{overallScore}%</div><div className="stat-tile-label">Compliance score</div></div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-icon" style={{ color: risk.color, background: 'transparent' }}><IconAlertTriangle size={18} /></div>
+          <div className="stat-tile-icon" style={{ background: STAT_COLORS[1].bg, color: risk.color }}><IconAlertTriangle size={18} /></div>
           <div><div className="stat-tile-value">{risk.label}</div><div className="stat-tile-label">Risk level</div></div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-icon"><IconFileText size={18} /></div>
+          <div className="stat-tile-icon" style={{ background: STAT_COLORS[2].bg, color: STAT_COLORS[2].color }}><IconFileText size={18} /></div>
           <div><div className="stat-tile-value">{data.documentsReady}</div><div className="stat-tile-label">Documents</div></div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-icon"><IconBuilding size={18} /></div>
+          <div className="stat-tile-icon" style={{ background: STAT_COLORS[3].bg, color: STAT_COLORS[3].color }}><IconBuilding size={18} /></div>
           <div><div className="stat-tile-value">{data.vendorCount}</div><div className="stat-tile-label">Vendors</div></div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-icon"><IconBook size={18} /></div>
+          <div className="stat-tile-icon" style={{ background: STAT_COLORS[4].bg, color: STAT_COLORS[4].color }}><IconBook size={18} /></div>
           <div><div className="stat-tile-value">{data.frameworks.length}</div><div className="stat-tile-label">Frameworks</div></div>
         </div>
       </div>
@@ -201,11 +226,15 @@ export default function ComplianceGapAnalysis({
         <div className="panel">
           <h3 style={{ marginTop: 0 }}>Risk distribution</h3>
           {vendors.length === 0 && <div className="meta">No vendors tracked yet.</div>}
-          {tierCounts.map(({ tier, count }) => (
-            <div key={tier} className="risk-dist-row">
-              <span className="risk-dist-dot" style={{ background: TIER_COLOR[tier] }} />
-              <span className="risk-dist-label">{TIER_LABEL[tier]} risk vendors</span>
-              <span className="risk-dist-count">{count}</span>
+          {vendors.length > 0 && tierCounts.map(({ tier, count }) => (
+            <div key={tier} className="fw-progress-row">
+              <div className="fw-progress-head">
+                <span className="fw-name"><span className="risk-dist-dot" style={{ background: TIER_COLOR[tier] }} /> {TIER_LABEL[tier]} risk</span>
+                <span className="fw-score" style={{ color: TIER_COLOR[tier] }}>{count}</span>
+              </div>
+              <div className="fw-progress-track">
+                <div className="fw-progress-fill" style={{ width: `${(count / vendors.length) * 100}%`, background: TIER_COLOR[tier] }} />
+              </div>
             </div>
           ))}
         </div>

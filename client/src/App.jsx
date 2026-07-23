@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { getToken, setToken } from './api/client';
+import { useEffect, useState } from 'react';
+import { api, getToken, setToken } from './api/client';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
@@ -8,17 +8,30 @@ export default function App() {
   const [authed, setAuthed] = useState(!!getToken());
   const [openCompany, setOpenCompany] = useState(null);
   const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (authed && !userEmail) {
+      api.getMe().then((account) => {
+        setUserEmail(account.email);
+        setUserName(account.name || '');
+      }).catch(() => logout());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed]);
 
   function logout() {
     setToken(null);
     setAuthed(false);
     setOpenCompany(null);
     setUserEmail('');
+    setUserName('');
     setMenuOpen(false);
   }
 
-  const initials = userEmail ? userEmail[0].toUpperCase() : '?';
+  const displayName = userName || userEmail;
+  const initials = displayName ? displayName[0].toUpperCase() : '?';
 
   return (
     <div className="app">
@@ -35,7 +48,7 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setMenuOpen((v) => !v)}>
               <div className="topbar-avatar">{initials}</div>
               <div className="topbar-user-meta">
-                <span className="topbar-user-name">{userEmail || 'Account'}</span>
+                <span className="topbar-user-name">{displayName || 'Account'}</span>
                 <span className="topbar-user-role">Admin</span>
               </div>
             </div>
@@ -49,9 +62,13 @@ export default function App() {
       </div>
 
       <div className={`app-body ${!authed ? 'narrow' : ''}`}>
-        {!authed && <Auth onAuthed={(account) => { setAuthed(true); setUserEmail(account?.email || ''); }} />}
+        {!authed && (
+          <Auth onAuthed={(account) => { setAuthed(true); setUserEmail(account?.email || ''); setUserName(account?.name || ''); }} />
+        )}
         {authed && !openCompany && <Dashboard onOpenCompany={setOpenCompany} />}
-        {authed && openCompany && <CompanyDetail company={openCompany} onBack={() => setOpenCompany(null)} />}
+        {authed && openCompany && (
+          <CompanyDetail company={openCompany} userName={userName} onBack={() => setOpenCompany(null)} />
+        )}
       </div>
     </div>
   );

@@ -26,6 +26,12 @@ distribution, recent activity) is computed from real data — no fabricated dead
 Cross-tab actions (e.g. "Generate this" from a Next Best Action card, "Ask AI Officer" from the
 Dashboard) switch tabs and pre-fill the target form. Collapses to stacked pills below 860px.
 
+The Dashboard greets the signed-in user by name ("Good afternoon, Ankith 👋", based on real
+wall-clock time and an optional `name` on the account — falls back to email if not set), stat
+tiles use distinct colored icon treatments per metric, and the hero readiness card and AI
+Compliance Officer card use gradient/depth styling to read as a designed product rather than a
+form. All still driven by real computed numbers — the polish pass changed presentation, not data.
+
 ## Stack
 
 - `server/`: Node.js + Express + PostgreSQL API, `docx` for export

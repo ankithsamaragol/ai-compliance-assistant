@@ -4,8 +4,11 @@ CREATE TABLE IF NOT EXISTS accounts (
   id            SERIAL PRIMARY KEY,
   email         TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  name          TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS name TEXT;
 
 CREATE TABLE IF NOT EXISTS companies (
   id              SERIAL PRIMARY KEY,

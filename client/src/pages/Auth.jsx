@@ -5,6 +5,7 @@ export default function Auth({ onAuthed }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,7 @@ export default function Auth({ onAuthed }) {
     try {
       const { token, account } = mode === 'login'
         ? await api.login(email, password)
-        : await api.signup(email, password, inviteCode);
+        : await api.signup(email, password, inviteCode, name);
       setToken(token);
       onAuthed(account);
     } catch (err) {
@@ -30,6 +31,12 @@ export default function Auth({ onAuthed }) {
     <div className="panel" style={{ maxWidth: 380, margin: '80px auto' }}>
       <h2 style={{ marginTop: 0 }}>{mode === 'login' ? 'Log in' : 'Create an account'}</h2>
       <form onSubmit={submit}>
+        {mode === 'signup' && (
+          <>
+            <label>Your name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" />
+          </>
+        )}
         <label>Email</label>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <label>Password</label>

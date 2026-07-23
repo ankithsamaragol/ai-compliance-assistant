@@ -31,8 +31,10 @@ async function request(path, { method = 'GET', body, raw = false } = {}) {
 }
 
 export const api = {
-  signup: (email, password, inviteCode) => request('/auth/signup', { method: 'POST', body: { email, password, inviteCode } }),
+  signup: (email, password, inviteCode, name) => request('/auth/signup', { method: 'POST', body: { email, password, inviteCode, name } }),
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
+  getMe: () => request('/auth/me'),
+  updateMe: (name) => request('/auth/me', { method: 'PATCH', body: { name } }),
 
   listCompanies: () => request('/companies'),
   createCompany: (payload) => request('/companies', { method: 'POST', body: payload }),

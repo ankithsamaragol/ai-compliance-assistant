@@ -23,7 +23,7 @@ const NAV = [
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: false },
 ];
 
-export default function CompanyDetail({ company, onBack }) {
+export default function CompanyDetail({ company, onBack, userName }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -142,6 +142,7 @@ export default function CompanyDetail({ company, onBack }) {
           {activeTab === 'overview' && (
             <ComplianceGapAnalysis
               company={company}
+              userName={userName}
               refreshKey={gapRefreshKey}
               documents={documents}
               onSelectDocumentAction={jumpToGenerate}
