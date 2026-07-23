@@ -4,10 +4,19 @@ import VendorRegister from './VendorRegister';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 import ComplianceChat from './ComplianceChat';
 
+const TABS = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'vendors', label: 'Vendors' },
+  { key: 'chat', label: 'Chat' },
+];
+
 export default function CompanyDetail({ company, onBack }) {
+  const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [vendorCount, setVendorCount] = useState(0);
   const [framework, setFramework] = useState('');
   const [docType, setDocType] = useState('');
   const [provider, setProvider] = useState('');
@@ -28,6 +37,7 @@ export default function CompanyDetail({ company, onBack }) {
       setProviders(data);
       if (data[0]) setProvider(data[0].key);
     }).catch((err) => setError(err.message));
+    api.listVendors(company.id).then((v) => setVendorCount(v.length)).catch(() => {});
     refreshDocuments();
   }, [company.id]);
 
@@ -37,15 +47,16 @@ export default function CompanyDetail({ company, onBack }) {
 
   const currentFrameworkDocTypes = catalog.find((f) => f.key === framework)?.docTypes || [];
   const currentProvider = providers.find((p) => p.key === provider);
+  const realDocuments = documents.filter((d) => d.framework !== 'executive_report');
 
   function jumpToGenerate(fw, dt) {
     setFramework(fw);
     setDocType(dt);
-    document.getElementById('generate-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveTab('documents');
   }
 
   function jumpToVendors() {
-    document.getElementById('vendor-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveTab('vendors');
   }
 
   async function generate() {
@@ -86,103 +97,135 @@ export default function CompanyDetail({ company, onBack }) {
     <div>
       <span className="back-link" onClick={onBack}>← Back to companies</span>
 
-      <div className="panel">
-        <h2 style={{ marginTop: 0 }}>{company.name}</h2>
-        <div className="meta">{company.industry} · {company.size_band} employees · {company.country}</div>
-      </div>
-
-      <ComplianceGapAnalysis
-        company={company}
-        refreshKey={gapRefreshKey}
-        onSelectDocumentAction={jumpToGenerate}
-        onSelectVendorAction={jumpToVendors}
-        provider={provider}
-        onReportGenerated={(doc) => {
-          setDocuments((prev) => [doc, ...prev]);
-          setActiveDoc(doc);
-        }}
-      />
-
-      {providers.length > 0 && (
-        <ComplianceChat company={company} providers={providers} provider={provider} setProvider={setProvider} />
-      )}
-
-      <div className="panel" id="generate-panel">
-        <h3 style={{ marginTop: 0 }}>Generate a document</h3>
-        <div className="grid">
-          <div>
-            <label>Framework</label>
-            <select value={framework} onChange={(e) => {
-              setFramework(e.target.value);
-              const dt = catalog.find((f) => f.key === e.target.value)?.docTypes[0]?.key || '';
-              setDocType(dt);
-            }}>
-              {catalog.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-            </select>
+      <div className="workspace">
+        <div className="workspace-sidebar">
+          <div className="workspace-company-card">
+            <div className="company-name">{company.name}</div>
+            <div className="meta">{company.industry}</div>
+            <div className="meta">{company.size_band} employees · {company.country}</div>
           </div>
-          <div>
-            <label>Document type</label>
-            <select value={docType} onChange={(e) => setDocType(e.target.value)}>
-              {currentFrameworkDocTypes.map((dt) => <option key={dt.key} value={dt.key}>{dt.title}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>Generator</label>
-            <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-              {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
-            </select>
-          </div>
-        </div>
-        {currentProvider?.dataNotice && (
-          <div className={`data-notice ${currentProvider.local ? 'data-notice-local' : 'data-notice-cloud'}`}>
-            {currentProvider.local ? '🔒' : '☁️'} {currentProvider.dataNotice}
-          </div>
-        )}
-        {error && <div className="error">{error}</div>}
-        <button onClick={generate} disabled={generating || !framework || !docType}>
-          {generating ? 'Generating…' : 'Generate document'}
-        </button>
-      </div>
 
-      <div className="panel">
-        <h3 style={{ marginTop: 0 }}>Documents</h3>
-        <div className="doc-grid">
-          {documents.map((doc) => (
-            <div className="doc-card" key={doc.id}>
-              <span className="framework">{doc.framework.replace('_', ' ')}</span>
-              <span className="title">{doc.title}</span>
-              <span className={`status-badge status-${doc.status}`}>{doc.status}</span>
-              {doc.provider && <span className="meta" style={{ fontSize: 11 }}>via {doc.model || doc.provider}</span>}
-              <div style={{ display: 'flex', gap: 8 }}>
-                {doc.status === 'ready' && (
-                  <>
-                    <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={() => openDoc(doc)}>Preview</button>
-                    <button style={{ marginTop: 0, fontSize: 12 }} onClick={() => download(doc)}>Download .docx</button>
-                  </>
-                )}
+          <nav className="workspace-nav">
+            {TABS.map((tab) => (
+              <div
+                key={tab.key}
+                className={`workspace-nav-item ${activeTab === tab.key ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                <span>{tab.label}</span>
+                {tab.key === 'documents' && <span className="workspace-nav-badge">{realDocuments.length}</span>}
+                {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
               </div>
-            </div>
-          ))}
-          {documents.length === 0 && <div className="meta">No documents generated yet.</div>}
+            ))}
+          </nav>
+        </div>
+
+        <div className="workspace-content">
+          {activeTab === 'overview' && (
+            <ComplianceGapAnalysis
+              company={company}
+              refreshKey={gapRefreshKey}
+              onSelectDocumentAction={jumpToGenerate}
+              onSelectVendorAction={jumpToVendors}
+              provider={provider}
+              onReportGenerated={(doc) => {
+                setDocuments((prev) => [doc, ...prev]);
+                setActiveDoc(doc);
+                setActiveTab('documents');
+              }}
+            />
+          )}
+
+          {activeTab === 'documents' && (
+            <>
+              <div className="panel">
+                <h3 style={{ marginTop: 0 }}>Generate a document</h3>
+                <div className="grid">
+                  <div>
+                    <label>Framework</label>
+                    <select value={framework} onChange={(e) => {
+                      setFramework(e.target.value);
+                      const dt = catalog.find((f) => f.key === e.target.value)?.docTypes[0]?.key || '';
+                      setDocType(dt);
+                    }}>
+                      {catalog.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Document type</label>
+                    <select value={docType} onChange={(e) => setDocType(e.target.value)}>
+                      {currentFrameworkDocTypes.map((dt) => <option key={dt.key} value={dt.key}>{dt.title}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Generator</label>
+                    <select value={provider} onChange={(e) => setProvider(e.target.value)}>
+                      {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {currentProvider?.dataNotice && (
+                  <div className={`data-notice ${currentProvider.local ? 'data-notice-local' : 'data-notice-cloud'}`}>
+                    {currentProvider.local ? '🔒' : '☁️'} {currentProvider.dataNotice}
+                  </div>
+                )}
+                {error && <div className="error">{error}</div>}
+                <button onClick={generate} disabled={generating || !framework || !docType}>
+                  {generating ? 'Generating…' : 'Generate document'}
+                </button>
+              </div>
+
+              <div className="panel">
+                <h3 style={{ marginTop: 0 }}>Documents</h3>
+                <div className="doc-grid">
+                  {documents.map((doc) => (
+                    <div className="doc-card" key={doc.id}>
+                      <span className="framework">{doc.framework.replace('_', ' ')}</span>
+                      <span className="title">{doc.title}</span>
+                      <span className={`status-badge status-${doc.status}`}>{doc.status}</span>
+                      {doc.provider && <span className="meta" style={{ fontSize: 11 }}>via {doc.model || doc.provider}</span>}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {doc.status === 'ready' && (
+                          <>
+                            <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={() => openDoc(doc)}>Preview</button>
+                            <button style={{ marginTop: 0, fontSize: 12 }} onClick={() => download(doc)}>Download .docx</button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {documents.length === 0 && <div className="meta">No documents generated yet.</div>}
+                </div>
+              </div>
+
+              {activeDoc?.content_md && (
+                <div className="panel">
+                  <h3 style={{ marginTop: 0 }}>{activeDoc.title}</h3>
+                  <div className="doc-preview">{activeDoc.content_md}</div>
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'vendors' && providers.length > 0 && (
+            <VendorRegister
+              company={company}
+              providers={providers}
+              provider={provider}
+              setProvider={setProvider}
+              onChange={(count) => {
+                setGapRefreshKey((k) => k + 1);
+                if (typeof count === 'number') setVendorCount(count);
+                else api.listVendors(company.id).then((v) => setVendorCount(v.length)).catch(() => {});
+              }}
+            />
+          )}
+
+          {activeTab === 'chat' && providers.length > 0 && (
+            <ComplianceChat company={company} providers={providers} provider={provider} setProvider={setProvider} />
+          )}
         </div>
       </div>
-
-      {providers.length > 0 && (
-        <VendorRegister
-          company={company}
-          providers={providers}
-          provider={provider}
-          setProvider={setProvider}
-          onChange={() => setGapRefreshKey((k) => k + 1)}
-        />
-      )}
-
-      {activeDoc?.content_md && (
-        <div className="panel">
-          <h3 style={{ marginTop: 0 }}>{activeDoc.title}</h3>
-          <div className="doc-preview">{activeDoc.content_md}</div>
-        </div>
-      )}
     </div>
   );
 }

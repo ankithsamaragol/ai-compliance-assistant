@@ -51,14 +51,18 @@ export default function Dashboard({ onOpenCompany }) {
 
   return (
     <div>
-      <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0 }}>Companies</h2>
-          <button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : '+ New company'}</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
+        <div>
+          <h2 className="section-heading" style={{ marginBottom: 4 }}>Companies</h2>
+          <div className="meta">{companies.length} workspace{companies.length === 1 ? '' : 's'}</div>
         </div>
+        <button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : '+ New company'}</button>
+      </div>
 
-        {showForm && (
-          <form onSubmit={submit} style={{ marginTop: 12 }}>
+      {showForm && (
+        <div className="panel">
+          <h3 style={{ marginTop: 0 }}>New company</h3>
+          <form onSubmit={submit}>
             <div className="grid">
               <div>
                 <label>Company name</label>
@@ -178,21 +182,29 @@ export default function Dashboard({ onOpenCompany }) {
             {error && <div className="error">{error}</div>}
             <button type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save company'}</button>
           </form>
-        )}
-      </div>
+        </div>
+      )}
 
-      <ul className="company-list">
+      {companies.length === 0 && !showForm && (
+        <div className="panel" style={{ textAlign: 'center', padding: '48px 20px' }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>No companies yet</div>
+          <div className="meta">Add a company to start generating compliance documents.</div>
+        </div>
+      )}
+
+      <div className="company-grid">
         {companies.map((c) => (
-          <li key={c.id} onClick={() => onOpenCompany(c)}>
-            <div>
-              <div>{c.name}</div>
-              <div className="meta">{c.industry} · {c.size_band} · {c.country}</div>
+          <div className="company-card" key={c.id} onClick={() => onOpenCompany(c)}>
+            <div className="company-card-name">{c.name}</div>
+            <div className="meta">{c.industry}</div>
+            <div className="meta">{c.size_band} employees · {c.country}</div>
+            <div className="company-card-footer">
+              <span className="meta">{new Date(c.created_at).toLocaleDateString()}</span>
+              <span className="view-link">Open →</span>
             </div>
-            <span className="meta">View →</span>
-          </li>
+          </div>
         ))}
-        {companies.length === 0 && !showForm && <div className="meta">No companies yet. Add one to get started.</div>}
-      </ul>
+      </div>
     </div>
   );
 }

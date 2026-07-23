@@ -12,6 +12,15 @@ kits, not software — only 4% of contractors feel audit-ready), and AI governan
 EU AI Act), where no incumbent has entrenched dominance yet since the EU AI Act only phases in
 through 2026. Both are additive to the existing catalog, not a rebuild.
 
+## UI
+
+Each company opens into a workspace: a sidebar (company summary + Overview/Documents/Vendors/Chat
+nav, with live counts) and a content pane that shows one section at a time. Earlier this was a
+single long-scroll page with every panel stacked — functional but not something you'd hand to a
+customer. Cross-tab actions (e.g. "Generate this" from a Next Best Action card) switch tabs and
+pre-fill the target form rather than scrolling to an anchor. Collapses to horizontal tab pills
+below 860px.
+
 ## Stack
 
 - `server/`: Node.js + Express + PostgreSQL API, `docx` for export

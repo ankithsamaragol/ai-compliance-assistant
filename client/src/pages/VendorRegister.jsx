@@ -20,7 +20,7 @@ export default function VendorRegister({ company, providers, provider, setProvid
     try {
       const { vendors: rows } = await api.detectVendors(company.id, provider);
       setVendors(rows);
-      onChange?.();
+      onChange?.(rows.length);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -31,15 +31,18 @@ export default function VendorRegister({ company, providers, provider, setProvid
   async function remove(id) {
     try {
       await api.deleteVendor(id);
-      setVendors((prev) => prev.filter((v) => v.id !== id));
-      onChange?.();
+      setVendors((prev) => {
+        const next = prev.filter((v) => v.id !== id);
+        onChange?.(next.length);
+        return next;
+      });
     } catch (err) {
       setError(err.message);
     }
   }
 
   return (
-    <div className="panel" id="vendor-panel">
+    <div className="panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 style={{ margin: 0 }}>Vendor Risk Register</h3>
