@@ -14,17 +14,22 @@ through 2026. Both are additive to the existing catalog, not a rebuild.
 
 ## UI
 
-Each company opens into a workspace: an icon sidebar (company summary + Dashboard/AI Compliance
-Officer/Documents/Vendors, with live counts) and a content pane that shows one section at a time.
-The sidebar also lists sections that don't exist yet as real features (Risks, Frameworks,
-Controls, Evidence, Tasks & Actions, Reports, Timeline, Settings) — visibly disabled and marked
-"Soon" rather than either omitted or (worse) linking to an empty page. Matching a reference SaaS
-dashboard design was a deliberate exercise in staying honest at the navigation level: every number
-and widget on the Dashboard tab (readiness ring, stat tiles, priorities, framework progress, risk
-distribution, recent activity) is computed from real data — no fabricated deadlines or a fake
-2-axis risk heatmap, since we don't track the underlying likelihood/impact data that would require.
-Cross-tab actions (e.g. "Generate this" from a Next Best Action card, "Ask AI Officer" from the
-Dashboard) switch tabs and pre-fill the target form. Collapses to stacked pills below 860px.
+Each company opens into a workspace with a fixed-left icon sidebar (brand at top, company
+switcher, Dashboard/AI Compliance Officer/Documents/Vendors nav with live counts, user profile
+pinned at the bottom) and a content pane that shows one section at a time. The sidebar also lists
+sections that don't exist yet as real features (Risks, Frameworks, Controls, Evidence, Tasks &
+Actions, Reports, Timeline, Settings) — visibly disabled and marked "Soon" rather than either
+omitted or (worse) linking to an empty page. Matching a reference SaaS dashboard design was a
+deliberate exercise in staying honest at the navigation level: every number and widget on the
+Dashboard tab (readiness ring, stat tiles, priorities, framework progress, risk distribution,
+recent activity) is computed from real data — no fabricated deadlines or a fake 2-axis risk
+heatmap, since we don't track the underlying likelihood/impact data that would require. The hero
+readiness card and AI Compliance Officer card use decorative-only touches (an inline SVG mountain
+illustration, a chat-bubble-style message) for visual depth; the "High/Medium/Low Impact" pill on
+the top recommendation is derived from the real point-lift value, not fabricated. Cross-tab actions
+(e.g. "Generate this" from a Next Best Action card, "Ask AI Officer" from the Dashboard) switch
+tabs and pre-fill the target form. Sidebar collapses to a horizontal bar above the content below
+860px.
 
 The Dashboard greets the signed-in user by name ("Good afternoon, Ankith 👋", based on real
 wall-clock time and an optional `name` on the account — falls back to email if not set), stat

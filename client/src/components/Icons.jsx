@@ -31,3 +31,5 @@ export const IconChevronDown = (p) => <Svg {...p}><path d="m6 9 6 6 6-6" /></Svg
 export const IconSearch = (p) => <Svg {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Svg>;
 export const IconArrowRight = (p) => <Svg {...p}><path d="M5 12h14M13 6l6 6-6 6" /></Svg>;
 export const IconTrendUp = (p) => <Svg {...p}><path d="m3 17 6-6 4 4 8-8" /><path d="M15 7h6v6" /></Svg>;
+export const IconCheckCircle = (p) => <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="m8.5 12.5 2.5 2.5 5-5" /></Svg>;
+export const IconMessageCircle = (p) => <Svg {...p}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.35 0-2.62-.32-3.73-.9L3 20l1-4.9A8.5 8.5 0 1 1 21 11.5Z" /></Svg>;

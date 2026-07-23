@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import {
   IconSparkle, IconShieldCheck, IconAlertTriangle, IconFileText, IconBuilding, IconBook, IconClock,
+  IconCheckCircle, IconMessageCircle,
 } from '../components/Icons';
 
 function scoreColor(score) {
@@ -20,6 +21,12 @@ function riskLevel(openRisks) {
   if (openRisks === 0) return { label: 'Low', color: '#2e8b52' };
   if (openRisks <= 2) return { label: 'Medium', color: '#b8860b' };
   return { label: 'High', color: 'var(--danger)' };
+}
+
+function impactTier(lift) {
+  if (lift >= 15) return { label: 'High Impact', cls: 'tier-critical' };
+  if (lift >= 8) return { label: 'Medium Impact', cls: 'tier-medium' };
+  return { label: 'Low Impact', cls: 'tier-low' };
 }
 
 const TIER_COLOR = { critical: 'var(--danger)', high: '#cc6d00', medium: '#b8860b', low: '#2e8b52' };
@@ -98,8 +105,9 @@ export default function ComplianceGapAnalysis({
   const realDocuments = (documents || []).filter((d) => d.framework !== 'executive_report');
   const activity = [
     ...realDocuments.map((d) => ({ type: 'document', title: d.title, meta: d.framework.replace('_', ' '), time: d.created_at })),
-    ...vendors.map((v) => ({ type: 'vendor', title: `${v.name} added to vendor register`, meta: `${TIER_LABEL[v.risk_tier]} risk`, time: v.created_at })),
+    ...vendors.map((v) => ({ type: 'vendor', title: `${v.name} added to vendor register`, meta: `${TIER_LABEL[v.risk_tier]} risk`, time: v.created_at, tier: v.risk_tier })),
   ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 6);
+  const impact = topAction ? impactTier(topAction.totalLift) : null;
 
   const firstName = userName ? userName.split(' ')[0] : '';
 
@@ -123,6 +131,12 @@ export default function ComplianceGapAnalysis({
 
       <div className="dashboard-hero">
         <div className="hero-readiness">
+          <svg className="hero-illustration" viewBox="0 0 240 140" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+            <polygon points="130,18 185,112 75,112" fill="rgba(139,156,255,0.28)" />
+            <polygon points="185,46 240,112 130,112" fill="rgba(150,100,255,0.24)" />
+            <line x1="130" y1="18" x2="130" y2="2" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
+            <polygon points="130,2 149,8 130,14" fill="rgba(255,255,255,0.8)" />
+          </svg>
           <div
             className="readiness-ring"
             style={{ background: `conic-gradient(#8b9cff ${overallScore * 3.6}deg, rgba(255,255,255,0.12) 0deg)` }}
@@ -146,12 +160,16 @@ export default function ComplianceGapAnalysis({
             AI Compliance Officer
           </div>
           <div className="hero-ai-message">
-            Ask anything about {company.name}'s vendors, gaps, and compliance status — grounded in the real data on file.
+            <span className="hero-ai-message-icon"><IconMessageCircle size={12} /></span>
+            <span>Ask anything about {company.name}'s vendors, gaps, and compliance status — grounded in the real data on file.</span>
           </div>
           {topAction && (
             <>
               <div className="hero-recommendation-label">Top recommendation</div>
-              <div className="hero-recommendation">{topAction.label}</div>
+              <div className="hero-recommendation-row">
+                <div className="hero-recommendation">{topAction.label}</div>
+                <span className={`tier-badge ${impact.cls}`}>{impact.label}</span>
+              </div>
               <div className="hero-recommendation-impact">+{topAction.totalLift}pt impact</div>
             </>
           )}
@@ -244,7 +262,9 @@ export default function ComplianceGapAnalysis({
           {activity.length === 0 && <div className="meta">No activity yet.</div>}
           {activity.map((item, i) => (
             <div key={i} className="activity-item">
-              <span className="activity-dot" />
+              {item.type === 'document'
+                ? <span className="activity-icon activity-icon-done"><IconCheckCircle size={13} /></span>
+                : <span className="activity-dot" style={{ background: TIER_COLOR[item.tier] }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="activity-item-title">{item.title}</div>
                 <div className="activity-item-meta">{item.meta}</div>

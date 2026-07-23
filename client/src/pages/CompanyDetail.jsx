@@ -6,6 +6,7 @@ import ComplianceChat from './ComplianceChat';
 import {
   IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding, IconBook,
   IconShieldCheck, IconClipboard, IconCheckSquare, IconFileText, IconClock, IconSettings,
+  IconChevronDown,
 } from '../components/Icons';
 
 const NAV = [
@@ -23,7 +24,7 @@ const NAV = [
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: false },
 ];
 
-export default function CompanyDetail({ company, onBack, userName }) {
+export default function CompanyDetail({ company, onBack, userName, userEmail, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -36,6 +37,10 @@ export default function CompanyDetail({ company, onBack, userName }) {
   const [error, setError] = useState('');
   const [activeDoc, setActiveDoc] = useState(null);
   const [gapRefreshKey, setGapRefreshKey] = useState(0);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const displayName = userName || userEmail;
+  const initials = displayName ? displayName[0].toUpperCase() : '?';
 
   useEffect(() => {
     api.getCatalog().then((data) => {
@@ -106,39 +111,60 @@ export default function CompanyDetail({ company, onBack, userName }) {
   }
 
   return (
-    <div>
-      <span className="back-link" onClick={onBack}>← Back to companies</span>
-
-      <div className="workspace">
-        <div className="workspace-sidebar">
-          <div className="workspace-company-card">
-            <div className="company-name">{company.name}</div>
-            <div className="meta">{company.industry}</div>
-            <div className="meta">{company.size_band} employees · {company.country}</div>
+    <div className="workspace-shell">
+      <aside className="workspace-sidebar">
+        <div className="workspace-brand" onClick={onBack} title="Back to companies">
+          <div className="workspace-brand-mark"><IconShieldCheck size={18} /></div>
+          <div>
+            <div className="workspace-brand-name">Compliance Officer</div>
+            <div className="workspace-brand-sub">AI-Powered Compliance</div>
           </div>
-
-          <nav className="workspace-nav">
-            {NAV.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <div
-                  key={tab.key}
-                  className={`workspace-nav-item ${activeTab === tab.key ? 'active' : ''} ${tab.enabled ? '' : 'disabled'}`}
-                  onClick={() => tab.enabled && setActiveTab(tab.key)}
-                  title={tab.enabled ? undefined : 'Coming soon'}
-                >
-                  <Icon size={16} />
-                  <span>{tab.label}</span>
-                  {tab.key === 'documents' && <span className="workspace-nav-badge">{realDocuments.length}</span>}
-                  {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
-                  {!tab.enabled && <span className="workspace-nav-soon">Soon</span>}
-                </div>
-              );
-            })}
-          </nav>
         </div>
 
-        <div className="workspace-content">
+        <div className="workspace-company-switch">
+          <IconBuilding size={14} />
+          <span>{company.name}</span>
+          <span className="switch-link" onClick={onBack}>Switch</span>
+        </div>
+
+        <nav className="workspace-nav">
+          {NAV.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <div
+                key={tab.key}
+                className={`workspace-nav-item ${activeTab === tab.key ? 'active' : ''} ${tab.enabled ? '' : 'disabled'}`}
+                onClick={() => tab.enabled && setActiveTab(tab.key)}
+                title={tab.enabled ? undefined : 'Coming soon'}
+              >
+                <Icon size={16} />
+                <span>{tab.label}</span>
+                {tab.key === 'documents' && <span className="workspace-nav-badge">{realDocuments.length}</span>}
+                {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
+                {!tab.enabled && <span className="workspace-nav-soon">Soon</span>}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="workspace-sidebar-spacer" />
+
+        <div className="workspace-user" onClick={() => setUserMenuOpen((v) => !v)}>
+          <div className="workspace-user-avatar">{initials}</div>
+          <div className="workspace-user-meta">
+            <span className="workspace-user-name">{displayName || 'Account'}</span>
+            <span className="workspace-user-role">Admin</span>
+          </div>
+          <IconChevronDown size={14} />
+          {userMenuOpen && (
+            <div className="workspace-user-menu" onClick={(e) => e.stopPropagation()}>
+              <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={onLogout}>Log out</button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <main className="workspace-main">
           {activeTab === 'overview' && (
             <ComplianceGapAnalysis
               company={company}
@@ -245,8 +271,7 @@ export default function CompanyDetail({ company, onBack, userName }) {
           {activeTab === 'chat' && providers.length > 0 && (
             <ComplianceChat company={company} providers={providers} provider={provider} setProvider={setProvider} />
           )}
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
