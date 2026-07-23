@@ -9,6 +9,7 @@ const vendorsRoutes = require('./routes/vendors');
 const complianceRoutes = require('./routes/compliance');
 const chatRoutes = require('./routes/chat');
 const reportsRoutes = require('./routes/reports');
+const evidenceRoutes = require('./routes/evidence');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/vendors', vendorsRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/evidence', evidenceRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

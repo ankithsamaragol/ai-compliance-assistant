@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, getToken } from '../api/client';
 import VendorRegister from './VendorRegister';
+import Evidence from './Evidence';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 import ComplianceChat from './ComplianceChat';
 import {
@@ -17,7 +18,7 @@ const NAV = [
   { key: 'vendors', label: 'Vendors', icon: IconBuilding, enabled: true },
   { key: 'frameworks', label: 'Frameworks', icon: IconBook, enabled: false },
   { key: 'controls', label: 'Controls', icon: IconShieldCheck, enabled: false },
-  { key: 'evidence', label: 'Evidence', icon: IconClipboard, enabled: false },
+  { key: 'evidence', label: 'Evidence', icon: IconClipboard, enabled: true },
   { key: 'tasks', label: 'Tasks & Actions', icon: IconCheckSquare, enabled: false },
   { key: 'reports', label: 'Reports', icon: IconFileText, enabled: false },
   { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: false },
@@ -30,6 +31,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
   const [providers, setProviders] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [vendorCount, setVendorCount] = useState(0);
+  const [evidenceCount, setEvidenceCount] = useState(0);
   const [framework, setFramework] = useState('');
   const [docType, setDocType] = useState('');
   const [provider, setProvider] = useState('');
@@ -55,6 +57,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
       if (data[0]) setProvider(data[0].key);
     }).catch((err) => setError(err.message));
     api.listVendors(company.id).then((v) => setVendorCount(v.length)).catch(() => {});
+    api.listEvidence(company.id).then((v) => setEvidenceCount(v.length)).catch(() => {});
     refreshDocuments();
   }, [company.id]);
 
@@ -141,6 +144,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
                 <span>{tab.label}</span>
                 {tab.key === 'documents' && <span className="workspace-nav-badge">{realDocuments.length}</span>}
                 {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
+                {tab.key === 'evidence' && <span className="workspace-nav-badge">{evidenceCount}</span>}
                 {!tab.enabled && <span className="workspace-nav-soon">Soon</span>}
               </div>
             );
@@ -270,6 +274,19 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
 
           {activeTab === 'chat' && providers.length > 0 && (
             <ComplianceChat company={company} providers={providers} provider={provider} setProvider={setProvider} />
+          )}
+
+          {activeTab === 'evidence' && providers.length > 0 && (
+            <Evidence
+              company={company}
+              providers={providers}
+              provider={provider}
+              setProvider={setProvider}
+              onChange={() => {
+                setGapRefreshKey((k) => k + 1);
+                api.listEvidence(company.id).then((v) => setEvidenceCount(v.length)).catch(() => {});
+              }}
+            />
           )}
       </main>
     </div>

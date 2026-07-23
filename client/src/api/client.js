@@ -41,6 +41,7 @@ export const api = {
   getCompany: (id) => request(`/companies/${id}`),
 
   getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
+  getEvidenceTargets: () => request('/compliance/evidence-targets'),
   generateExecutiveReport: (companyId, provider) => request('/reports/executive', { method: 'POST', body: { companyId, provider } }),
 
   listChatMessages: (companyId) => request(`/chat?companyId=${companyId}`),
@@ -50,6 +51,24 @@ export const api = {
   listVendors: (companyId) => request(`/vendors?companyId=${companyId}`),
   detectVendors: (companyId, provider) => request('/vendors/detect', { method: 'POST', body: { companyId, provider } }),
   deleteVendor: (id) => request(`/vendors/${id}`, { method: 'DELETE' }),
+
+  listEvidence: (companyId) => request(`/evidence?companyId=${companyId}`),
+  deleteEvidence: (id) => request(`/evidence/${id}`, { method: 'DELETE' }),
+  async uploadEvidence(companyId, file, provider) {
+    const formData = new FormData();
+    formData.append('companyId', companyId);
+    if (provider) formData.append('provider', provider);
+    formData.append('file', file);
+    const token = getToken();
+    const res = await fetch('/api/evidence/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  },
 
   getCatalog: () => request('/documents/catalog'),
   getProviders: () => request('/documents/providers'),

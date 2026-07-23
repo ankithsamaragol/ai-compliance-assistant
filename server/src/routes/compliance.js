@@ -2,9 +2,14 @@ const express = require('express');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { computeGapAnalysis } = require('../services/gapAnalysis');
+const { evidenceTargets } = require('../services/evidenceIntelligence');
 
 const router = express.Router();
 router.use(requireAuth);
+
+router.get('/evidence-targets', (req, res) => {
+  res.json(evidenceTargets());
+});
 
 router.get('/gap-analysis', async (req, res, next) => {
   try {

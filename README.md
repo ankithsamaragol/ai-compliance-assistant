@@ -198,6 +198,35 @@ inside an HTTP request isn't viable, so the provider now fails fast with a clear
 Ollama instead") rather than blocking. Worth knowing before demoing: heavy same-day testing on
 the free tier will eventually hit this, and Ollama is the fallback.
 
+## Evidence Intelligence (Phase 3)
+
+Ten checklist items that were previously honest, permanently-unchecked gaps (security training
+records, backup procedures, config baselines, DPIAs, bias-testing evidence, etc. — the ones
+`gapChecklist.js` marked `type: 'unavailable'`) are now real, closeable checks: upload a real
+document and AI reads it, decides which specific checklist item(s) it genuinely supports, and
+scores accordingly. This is the direct fix for the "evidence collection without intelligence"
+gap named in the product-vision doc — competitors let you attach a file to a control; this reads
+the file and tells you which control(s) it actually satisfies.
+
+v1 scope is deliberately text-only: PDF, DOCX, TXT, MD, CSV, LOG, JSON (10MB max), via
+`server/src/services/evidenceExtract.js` (`pdf-parse` / `mammoth` for PDF/DOCX, direct read for
+plain text). Screenshots and other images can still be uploaded for record-keeping but are marked
+`unsupported` rather than silently ignored or fake-analyzed — real evidence is overwhelmingly
+screenshots (MFA settings, IAM policies, S3 config) in practice, but that needs a vision-capable
+model path the current text-only Groq/Ollama providers don't have; deferred rather than faked.
+
+`server/src/services/evidenceIntelligence.js` gives the model a fixed list of valid
+`framework:key` targets pulled from the checklist itself (never lets it invent a control), and
+requires per-item confidence (`high`/`medium`/`low`) with a reasoning sentence citing the actual
+text. Only `high`/`medium` confidence matches close a gap and move the score — a `low` match still
+shows in the evidence list (so nothing's hidden) but doesn't inflate readiness on a shaky guess.
+One upload can close a gap in multiple frameworks at once (a single security-training log
+satisfies both ISO 27001's and CMMC's training-records requirement) — the same cross-framework
+reuse principle as Next Best Action, just triggered by real uploaded proof instead of a generated
+document. Files are stored locally under `server/uploads/evidence/<company_id>/` (gitignored, no
+cloud copy — consistent with the rest of this app's data-storage posture) and deleted from disk
+when the evidence row is deleted.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -205,7 +234,8 @@ the free tier will eventually hit this, and Ollama is the fallback.
 - DOCX export handles headings, paragraphs, bullet/numbered lists, tables, and blockquotes —
   not a full markdown spec
 - No built-in e-signature or audit-trail logging of who approved a document
-- No evidence upload/AI control mapping and no cloud connectors (AWS/Azure/M365/GitHub) yet —
-  tracked as the next phases toward a full compliance platform rather than a document generator
+- Evidence Intelligence is text-only (see above) — screenshot/image analysis needs a vision-capable
+  provider path, not yet built
+- No cloud connectors (AWS/Azure/M365/GitHub) yet for auto-pulling evidence — Phase 4
 - Gap analysis checklist items are curated, not a full ISO 27001 Annex A (93 controls) or
   GDPR article-by-article mapping — it's honest about what it checks, not exhaustive

@@ -73,7 +73,25 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS evidence (
+  id              SERIAL PRIMARY KEY,
+  company_id      INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  filename        TEXT NOT NULL,        -- name on disk under server/uploads/evidence/<company_id>/
+  original_name   TEXT NOT NULL,
+  mime_type       TEXT,
+  size_bytes      INTEGER,
+  status          TEXT NOT NULL DEFAULT 'pending',  -- pending | analyzed | unsupported | failed
+  summary         TEXT,
+  mapped_controls JSONB NOT NULL DEFAULT '[]',       -- [{framework,key,confidence,reasoning}]
+  provider        TEXT,
+  model           TEXT,
+  error           TEXT,
+  uploaded_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  analyzed_at     TIMESTAMPTZ
+);
+
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_company ON chat_messages(company_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_company ON evidence(company_id);

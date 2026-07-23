@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import {
   IconSparkle, IconShieldCheck, IconAlertTriangle, IconFileText, IconBuilding, IconBook, IconClock,
-  IconCheckCircle, IconMessageCircle,
+  IconCheckCircle, IconMessageCircle, IconClipboard,
 } from '../components/Icons';
 
 function scoreColor(score) {
@@ -55,6 +55,7 @@ const STAT_COLORS = [
   { bg: 'rgba(91,140,255,0.14)', color: 'var(--accent)' },
   { bg: 'rgba(122,200,150,0.16)', color: '#3ba25f' },
   { bg: 'rgba(180,130,255,0.16)', color: '#9a6ee0' },
+  { bg: 'rgba(80,190,200,0.16)', color: '#2f9aa3' },
 ];
 
 export default function ComplianceGapAnalysis({
@@ -197,6 +198,10 @@ export default function ComplianceGapAnalysis({
         <div className="stat-tile">
           <div className="stat-tile-icon" style={{ background: STAT_COLORS[4].bg, color: STAT_COLORS[4].color }}><IconBook size={18} /></div>
           <div><div className="stat-tile-value">{data.frameworks.length}</div><div className="stat-tile-label">Frameworks</div></div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-tile-icon" style={{ background: STAT_COLORS[5].bg, color: STAT_COLORS[5].color }}><IconClipboard size={18} /></div>
+          <div><div className="stat-tile-value">{data.evidenceCount || 0}</div><div className="stat-tile-label">Evidence</div></div>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
-// Defines what "compliance readiness" means per framework: a mix of items we can
-// verify automatically (a ready document exists, the vendor register is populated)
-// and items we honestly can't automate yet (shown as gaps, not silently skipped).
+// Defines what "compliance readiness" means per framework: a mix of items satisfied by a
+// generated document, a populated vendor register, or AI-analyzed uploaded evidence that
+// specifically maps to that item (see services/evidenceIntelligence.js). 'unavailable' remains
+// as an honest fallback for anything not yet covered by any of the above.
 // This is the target checklist gap analysis is scored against.
 
 const GAP_CHECKLIST = {
@@ -14,9 +15,9 @@ const GAP_CHECKLIST = {
       { key: 'vendor_policy', label: 'Vendor Risk Assessment Policy', check: { type: 'document', framework: 'risk_assessment', docType: 'vendor_risk_assessment' } },
       { key: 'vendor_register', label: 'Vendor Risk Register (structured)', check: { type: 'vendors' } },
       { key: 'audit_evidence', label: 'Audit Evidence Checklist', check: { type: 'document', framework: 'audit_evidence', docType: 'evidence_checklist' } },
-      { key: 'asset_register', label: 'Asset Register', check: { type: 'unavailable' } },
-      { key: 'security_training', label: 'Security Awareness Training Records', check: { type: 'unavailable' } },
-      { key: 'backup_recovery', label: 'Backup & Disaster Recovery Procedure', check: { type: 'unavailable' } },
+      { key: 'asset_register', label: 'Asset Register', check: { type: 'evidence' } },
+      { key: 'security_training', label: 'Security Awareness Training Records', check: { type: 'evidence' } },
+      { key: 'backup_recovery', label: 'Backup & Disaster Recovery Procedure', check: { type: 'evidence' } },
     ],
   },
   gdpr: {
@@ -26,8 +27,8 @@ const GAP_CHECKLIST = {
       { key: 'dpa', label: 'Data Processing Agreement', check: { type: 'document', framework: 'gdpr', docType: 'data_processing_agreement' } },
       { key: 'ropa', label: 'Record of Processing Activities (ROPA)', check: { type: 'document', framework: 'gdpr', docType: 'ropa' } },
       { key: 'vendor_register', label: 'Sub-processor / Vendor Register', check: { type: 'vendors' } },
-      { key: 'breach_procedure', label: 'Data Breach Notification Procedure', check: { type: 'unavailable' } },
-      { key: 'dpia', label: 'Data Protection Impact Assessment (DPIA)', check: { type: 'unavailable' } },
+      { key: 'breach_procedure', label: 'Data Breach Notification Procedure', check: { type: 'evidence' } },
+      { key: 'dpia', label: 'Data Protection Impact Assessment (DPIA)', check: { type: 'evidence' } },
     ],
   },
   cmmc: {
@@ -37,9 +38,9 @@ const GAP_CHECKLIST = {
       { key: 'poam', label: 'Plan of Action & Milestones (POA&M)', check: { type: 'document', framework: 'cmmc', docType: 'poam' } },
       { key: 'ir_plan', label: 'CMMC Incident Response Plan (72hr DFARS)', check: { type: 'document', framework: 'cmmc', docType: 'incident_response_plan_cmmc' } },
       { key: 'vendor_register', label: 'Subcontractor / Vendor Flow-Down Register', check: { type: 'vendors' } },
-      { key: 'config_baseline', label: 'Configuration Management Baseline', check: { type: 'unavailable' } },
-      { key: 'access_evidence', label: 'Access Control Implementation Evidence', check: { type: 'unavailable' } },
-      { key: 'security_training', label: 'Security Awareness Training Records', check: { type: 'unavailable' } },
+      { key: 'config_baseline', label: 'Configuration Management Baseline', check: { type: 'evidence' } },
+      { key: 'access_evidence', label: 'Access Control Implementation Evidence', check: { type: 'evidence' } },
+      { key: 'security_training', label: 'Security Awareness Training Records', check: { type: 'evidence' } },
     ],
   },
   iso42001: {
@@ -49,9 +50,9 @@ const GAP_CHECKLIST = {
       { key: 'ai_risk_assessment', label: 'AI Risk & Impact Assessment', check: { type: 'document', framework: 'iso42001', docType: 'ai_risk_assessment' } },
       { key: 'eu_ai_act', label: 'EU AI Act Readiness Statement', check: { type: 'document', framework: 'iso42001', docType: 'eu_ai_act_readiness' } },
       { key: 'vendor_register', label: 'Third-Party AI/Foundation Model Register', check: { type: 'vendors' } },
-      { key: 'bias_testing', label: 'Bias/Fairness Testing Evidence', check: { type: 'unavailable' } },
-      { key: 'human_oversight_log', label: 'Human Oversight Checkpoint Log', check: { type: 'unavailable' } },
-      { key: 'model_monitoring', label: 'Post-Deployment Model Monitoring Records', check: { type: 'unavailable' } },
+      { key: 'bias_testing', label: 'Bias/Fairness Testing Evidence', check: { type: 'evidence' } },
+      { key: 'human_oversight_log', label: 'Human Oversight Checkpoint Log', check: { type: 'evidence' } },
+      { key: 'model_monitoring', label: 'Post-Deployment Model Monitoring Records', check: { type: 'evidence' } },
     ],
   },
 };

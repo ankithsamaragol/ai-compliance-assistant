@@ -2,12 +2,15 @@ const pool = require('../db/pool');
 const { GAP_CHECKLIST } = require('../templates/gapChecklist');
 const { computeCrossFrameworkHints } = require('../templates/controlMapping');
 
-function isSatisfied(check, ctx) {
+function isSatisfied(check, itemKey, frameworkKey, ctx) {
   if (check.type === 'document') {
     return ctx.readyDocs.has(`${check.framework}:${check.docType}`);
   }
   if (check.type === 'vendors') {
     return ctx.vendorCount > 0;
+  }
+  if (check.type === 'evidence') {
+    return ctx.evidenceKeys.has(`${frameworkKey}:${itemKey}`);
   }
   return false; // 'unavailable' — an honest gap, not something we can check yet
 }
@@ -49,26 +52,37 @@ function computeNextActions(frameworks, checklistByKey) {
 }
 
 async function computeGapAnalysis(companyId) {
-  const [{ rows: docs }, { rows: vendorRows }] = await Promise.all([
+  const [{ rows: docs }, { rows: vendorRows }, { rows: evidenceRows }] = await Promise.all([
     pool.query(`SELECT framework, doc_type FROM documents WHERE company_id = $1 AND status = 'ready' AND framework != 'executive_report'`, [companyId]),
     pool.query(`SELECT risk_tier FROM vendors WHERE company_id = $1`, [companyId]),
+    pool.query(`SELECT mapped_controls FROM evidence WHERE company_id = $1 AND status = 'analyzed'`, [companyId]),
   ]);
+
+  // Only high/medium-confidence AI mappings close a gap — a low-confidence guess shouldn't
+  // silently inflate the score. Low-confidence matches still show up in the evidence list.
+  const evidenceKeys = new Set();
+  for (const row of evidenceRows) {
+    for (const m of row.mapped_controls || []) {
+      if (m.confidence === 'high' || m.confidence === 'medium') evidenceKeys.add(`${m.framework}:${m.key}`);
+    }
+  }
 
   const ctx = {
     readyDocs: new Set(docs.map((d) => `${d.framework}:${d.doc_type}`)),
     vendorCount: vendorRows.length,
+    evidenceKeys,
   };
 
-  const frameworks = Object.entries(GAP_CHECKLIST).map(([key, def]) => {
+  const frameworks = Object.entries(GAP_CHECKLIST).map(([fwKey, def]) => {
     const items = def.items.map((item) => ({
       key: item.key,
       label: item.label,
-      satisfied: isSatisfied(item.check, ctx),
+      satisfied: isSatisfied(item.check, item.key, fwKey, ctx),
       automatable: item.check.type !== 'unavailable',
     }));
     const satisfiedCount = items.filter((i) => i.satisfied).length;
     return {
-      key,
+      key: fwKey,
       label: def.label,
       score: Math.round((satisfiedCount / items.length) * 100),
       satisfiedCount,
@@ -86,6 +100,7 @@ async function computeGapAnalysis(companyId) {
   return {
     frameworks, nextActions, crossFrameworkHints, openRisks,
     documentsReady: docs.length, vendorCount: ctx.vendorCount,
+    evidenceCount: evidenceRows.length,
   };
 }
 
