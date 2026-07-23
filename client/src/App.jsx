@@ -10,6 +10,20 @@ export default function App() {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [connectBanner, setConnectBanner] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('github_connect');
+    if (status) {
+      setConnectBanner(
+        status === 'success' ? 'GitHub connected — open your company\'s Evidence tab to see the synced signal.'
+          : status === 'denied' ? 'GitHub connection was cancelled.'
+          : 'GitHub connection failed. Try again from the Evidence tab.',
+      );
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (authed && !userEmail) {
@@ -60,6 +74,15 @@ export default function App() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {connectBanner && !openCompany && (
+        <div className="app-body" style={{ paddingBottom: 0 }}>
+          <div className="data-notice data-notice-cloud" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <span>{connectBanner}</span>
+            <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={() => setConnectBanner('')}>Dismiss</button>
+          </div>
         </div>
       )}
 

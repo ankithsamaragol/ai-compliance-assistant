@@ -42,6 +42,11 @@ export const api = {
 
   getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
   getEvidenceTargets: () => request('/compliance/evidence-targets'),
+
+  listConnectors: (companyId) => request(`/connectors?companyId=${companyId}`),
+  startGithubConnect: (companyId) => request(`/connectors/github/start?companyId=${companyId}`),
+  syncGithubConnector: (companyId) => request('/connectors/github/sync', { method: 'POST', body: { companyId } }),
+  disconnectGithubConnector: (companyId) => request(`/connectors/github?companyId=${companyId}`, { method: 'DELETE' }),
   generateExecutiveReport: (companyId, provider) => request('/reports/executive', { method: 'POST', body: { companyId, provider } }),
 
   listChatMessages: (companyId) => request(`/chat?companyId=${companyId}`),

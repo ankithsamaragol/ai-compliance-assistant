@@ -63,6 +63,7 @@ createdb ai_compliance_assistant
 # Server
 cd server
 cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET (generate per the comment in .env.example), GROQ_API_KEY
+                        # GITHUB_CLIENT_ID/SECRET are optional — only needed for the GitHub connector (Phase 4)
 npm install
 npm run migrate
 npm run dev             # http://localhost:4300
@@ -227,6 +228,45 @@ document. Files are stored locally under `server/uploads/evidence/<company_id>/`
 cloud copy — consistent with the rest of this app's data-storage posture) and deleted from disk
 when the evidence row is deleted.
 
+## Cloud Connectors (Phase 4, v1: GitHub)
+
+Instead of manually uploading proof, a connector pulls a compliance signal directly from a live
+API call. v1 is scoped to a single provider and a single signal, deliberately: OAuth app
+registration is something only the account owner can do (not something this session can create on
+your behalf), and each provider (AWS/Azure/M365/Google/GitHub) has a materially different auth
+model — building all five at once wasn't realistic. GitHub was picked first because its OAuth flow
+is the simplest of the five (AWS has no real OAuth — it's IAM roles/access keys, a worse place to
+start; Azure/Google need multi-step tenant consent).
+
+**Scope is intentionally minimal**: the `read:org` OAuth scope only (no `repo` access, so it never
+sees your code), and one signal — whether the GitHub organization enforces two-factor
+authentication for all members (`two_factor_requirement_enabled`, pulled live via
+`GET /orgs/{org}`). If the account belongs to multiple orgs, only the first is monitored and the
+evidence summary says so explicitly rather than silently picking one. Sync results are stored as a
+regular `evidence` row (`source: 'github'`) with the same shape AI-analyzed uploads use, so gap
+scoring, the checklist, and the dashboard all treat a connector fact identically to an uploaded
+document — verified end-to-end: connecting and syncing moved CMMC's "Access Control Implementation
+Evidence" item the same way an uploaded PDF would.
+
+**Security specifics**:
+- OAuth tokens are encrypted at rest (AES-256-GCM, `CONNECTOR_ENCRYPTION_KEY`) — never stored in
+  plaintext — via `server/src/services/crypto.js`.
+- The redirect flow is split into two endpoints because a page navigation (GitHub redirecting the
+  browser back to us) can't carry an `Authorization` header the way a normal API `fetch()` call
+  does: `/connectors/github/start` (normal Bearer-token auth, called via `fetch()`, returns the
+  GitHub authorize URL) and `/connectors/github/callback` (hit directly by GitHub's redirect, no
+  Authorization header exists — trust comes from a short-lived signed JWT `state` param instead,
+  verified with the same `JWT_SECRET` used for login).
+- Setup requires registering a GitHub OAuth App yourself at
+  https://github.com/settings/developers with its callback URL set to `GITHUB_REDIRECT_URI`
+  (`.env.example` has the exact values needed) — this app cannot and should not create that
+  registration on your behalf.
+
+**Known limitation**: single-org only, one signal. The pattern (OAuth → encrypted token → live API
+pull → evidence row → gap scoring) is proven and designed to extend — more GitHub signals (branch
+protection, secret scanning, Dependabot) or additional providers are the natural next increment,
+not a rebuild.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -236,6 +276,7 @@ when the evidence row is deleted.
 - No built-in e-signature or audit-trail logging of who approved a document
 - Evidence Intelligence is text-only (see above) — screenshot/image analysis needs a vision-capable
   provider path, not yet built
-- No cloud connectors (AWS/Azure/M365/GitHub) yet for auto-pulling evidence — Phase 4
+- Cloud Connectors cover GitHub only, one signal (org 2FA enforcement) — AWS/Azure/M365/Google and
+  additional GitHub signals (branch protection, secret scanning) are the natural next increment
 - Gap analysis checklist items are curated, not a full ISO 27001 Annex A (93 controls) or
   GDPR article-by-article mapping — it's honest about what it checks, not exhaustive

@@ -17,13 +17,24 @@ function timeAgo(iso) {
 export default function Evidence({ company, providers, provider, setProvider, onChange }) {
   const [items, setItems] = useState([]);
   const [targets, setTargets] = useState([]);
+  const [connectors, setConnectors] = useState([]);
+  const [connectorBusy, setConnectorBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
+  function loadEvidence() {
     api.listEvidence(company.id).then(setItems).catch((err) => setError(err.message));
+  }
+  function loadConnectors() {
+    api.listConnectors(company.id).then(setConnectors).catch(() => {});
+  }
+
+  useEffect(() => {
+    loadEvidence();
+    loadConnectors();
     api.getEvidenceTargets().then(setTargets).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company.id]);
 
   const currentProvider = providers.find((p) => p.key === provider);
@@ -31,6 +42,48 @@ export default function Evidence({ company, providers, provider, setProvider, on
     const t = targets.find((x) => x.framework === framework && x.key === key);
     return t ? `${t.label} (${t.frameworkLabel})` : key;
   };
+
+  const github = connectors.find((c) => c.provider === 'github');
+
+  async function connectGithub() {
+    setError('');
+    try {
+      const { url } = await api.startGithubConnect(company.id);
+      window.location.href = url;
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function syncGithub() {
+    setError('');
+    setConnectorBusy(true);
+    try {
+      const updated = await api.syncGithubConnector(company.id);
+      setConnectors((prev) => prev.map((c) => (c.provider === 'github' ? updated : c)));
+      loadEvidence();
+      onChange?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConnectorBusy(false);
+    }
+  }
+
+  async function disconnectGithub() {
+    setError('');
+    setConnectorBusy(true);
+    try {
+      await api.disconnectGithubConnector(company.id);
+      setConnectors((prev) => prev.filter((c) => c.provider !== 'github'));
+      loadEvidence();
+      onChange?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConnectorBusy(false);
+    }
+  }
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -60,8 +113,47 @@ export default function Evidence({ company, providers, provider, setProvider, on
   }
 
   return (
-    <div className="panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+    <div>
+      <div className="panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Connected sources</h3>
+            <div className="meta" style={{ marginTop: 4 }}>
+              Auto-pull compliance signals directly from your tools instead of manually uploading proof.
+              v1 supports GitHub only, read-only (<code>read:org</code> scope), checking org-wide 2FA enforcement.
+            </div>
+          </div>
+        </div>
+
+        <div className="evidence-card" style={{ marginTop: 14 }}>
+          <div className="evidence-card-head">
+            <div>
+              <div className="evidence-card-name">GitHub</div>
+              <div className="meta" style={{ fontSize: 11.5 }}>
+                {github
+                  ? `${github.external_account ? `Org: ${github.external_account}` : 'Connected'} · last synced ${github.last_synced_at ? timeAgo(github.last_synced_at) : 'never'}`
+                  : 'Not connected'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {github && <span className={`status-badge ${github.status === 'connected' ? 'status-ready' : 'status-failed'}`}>{github.status}</span>}
+              {!github && <button style={{ marginTop: 0 }} onClick={connectGithub}>Connect GitHub</button>}
+              {github && (
+                <>
+                  <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} disabled={connectorBusy} onClick={syncGithub}>
+                    {connectorBusy ? 'Syncing…' : 'Sync now'}
+                  </button>
+                  <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} disabled={connectorBusy} onClick={disconnectGithub}>Disconnect</button>
+                </>
+              )}
+            </div>
+          </div>
+          {github?.error && <div className="error" style={{ fontSize: 12, marginTop: 6 }}>{github.error}</div>}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 style={{ margin: 0 }}>Evidence</h3>
           <div className="meta" style={{ marginTop: 4 }}>
@@ -101,8 +193,9 @@ export default function Evidence({ company, providers, provider, setProvider, on
                 <div>
                   <div className="evidence-card-name">{item.original_name}</div>
                   <div className="meta" style={{ fontSize: 11.5 }}>
-                    {(item.size_bytes / 1024).toFixed(0)} KB · {timeAgo(item.uploaded_at)}
-                    {item.model && ` · via ${item.model}`}
+                    {item.source === 'github' ? 'Synced from GitHub' : `${(item.size_bytes / 1024).toFixed(0)} KB`}
+                    {' · '}{timeAgo(item.uploaded_at)}
+                    {item.model && item.source !== 'github' && ` · via ${item.model}`}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -133,6 +226,7 @@ export default function Evidence({ company, providers, provider, setProvider, on
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

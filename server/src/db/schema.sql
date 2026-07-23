@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE TABLE IF NOT EXISTS evidence (
   id              SERIAL PRIMARY KEY,
   company_id      INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  filename        TEXT NOT NULL,        -- name on disk under server/uploads/evidence/<company_id>/
+  filename        TEXT NOT NULL,        -- name on disk under server/uploads/evidence/<company_id>/, or a synthetic id for connector-sourced rows
   original_name   TEXT NOT NULL,
   mime_type       TEXT,
   size_bytes      INTEGER,
@@ -90,8 +90,25 @@ CREATE TABLE IF NOT EXISTS evidence (
   analyzed_at     TIMESTAMPTZ
 );
 
+ALTER TABLE evidence ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'upload'; -- upload | github
+
+CREATE TABLE IF NOT EXISTS connectors (
+  id                      SERIAL PRIMARY KEY,
+  company_id              INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  provider                TEXT NOT NULL,   -- 'github' (v1); more providers later
+  external_account        TEXT,            -- e.g. GitHub org login
+  access_token_encrypted  TEXT NOT NULL,   -- AES-256-GCM, never stored in plaintext
+  scopes                  TEXT,
+  status                  TEXT NOT NULL DEFAULT 'connected', -- connected | error
+  error                   TEXT,
+  last_synced_at          TIMESTAMPTZ,
+  connected_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (company_id, provider)
+);
+
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_company ON chat_messages(company_id);
 CREATE INDEX IF NOT EXISTS idx_evidence_company ON evidence(company_id);
+CREATE INDEX IF NOT EXISTS idx_connectors_company ON connectors(company_id);
