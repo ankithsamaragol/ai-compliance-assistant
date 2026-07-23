@@ -3,12 +3,24 @@ import { api, getToken } from '../api/client';
 import VendorRegister from './VendorRegister';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 import ComplianceChat from './ComplianceChat';
+import {
+  IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding, IconBook,
+  IconShieldCheck, IconClipboard, IconCheckSquare, IconFileText, IconClock, IconSettings,
+} from '../components/Icons';
 
-const TABS = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'documents', label: 'Documents' },
-  { key: 'vendors', label: 'Vendors' },
-  { key: 'chat', label: 'Chat' },
+const NAV = [
+  { key: 'overview', label: 'Dashboard', icon: IconHome, enabled: true },
+  { key: 'chat', label: 'AI Compliance Officer', icon: IconSparkle, enabled: true },
+  { key: 'documents', label: 'Documents', icon: IconDocument, enabled: true },
+  { key: 'risks', label: 'Risks', icon: IconAlertTriangle, enabled: false },
+  { key: 'vendors', label: 'Vendors', icon: IconBuilding, enabled: true },
+  { key: 'frameworks', label: 'Frameworks', icon: IconBook, enabled: false },
+  { key: 'controls', label: 'Controls', icon: IconShieldCheck, enabled: false },
+  { key: 'evidence', label: 'Evidence', icon: IconClipboard, enabled: false },
+  { key: 'tasks', label: 'Tasks & Actions', icon: IconCheckSquare, enabled: false },
+  { key: 'reports', label: 'Reports', icon: IconFileText, enabled: false },
+  { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: false },
+  { key: 'settings', label: 'Settings', icon: IconSettings, enabled: false },
 ];
 
 export default function CompanyDetail({ company, onBack }) {
@@ -106,17 +118,23 @@ export default function CompanyDetail({ company, onBack }) {
           </div>
 
           <nav className="workspace-nav">
-            {TABS.map((tab) => (
-              <div
-                key={tab.key}
-                className={`workspace-nav-item ${activeTab === tab.key ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                <span>{tab.label}</span>
-                {tab.key === 'documents' && <span className="workspace-nav-badge">{realDocuments.length}</span>}
-                {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
-              </div>
-            ))}
+            {NAV.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <div
+                  key={tab.key}
+                  className={`workspace-nav-item ${activeTab === tab.key ? 'active' : ''} ${tab.enabled ? '' : 'disabled'}`}
+                  onClick={() => tab.enabled && setActiveTab(tab.key)}
+                  title={tab.enabled ? undefined : 'Coming soon'}
+                >
+                  <Icon size={16} />
+                  <span>{tab.label}</span>
+                  {tab.key === 'documents' && <span className="workspace-nav-badge">{realDocuments.length}</span>}
+                  {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
+                  {!tab.enabled && <span className="workspace-nav-soon">Soon</span>}
+                </div>
+              );
+            })}
           </nav>
         </div>
 
@@ -125,8 +143,10 @@ export default function CompanyDetail({ company, onBack }) {
             <ComplianceGapAnalysis
               company={company}
               refreshKey={gapRefreshKey}
+              documents={documents}
               onSelectDocumentAction={jumpToGenerate}
               onSelectVendorAction={jumpToVendors}
+              onNavigateToChat={() => setActiveTab('chat')}
               provider={provider}
               onReportGenerated={(doc) => {
                 setDocuments((prev) => [doc, ...prev]);

@@ -14,12 +14,17 @@ through 2026. Both are additive to the existing catalog, not a rebuild.
 
 ## UI
 
-Each company opens into a workspace: a sidebar (company summary + Overview/Documents/Vendors/Chat
-nav, with live counts) and a content pane that shows one section at a time. Earlier this was a
-single long-scroll page with every panel stacked — functional but not something you'd hand to a
-customer. Cross-tab actions (e.g. "Generate this" from a Next Best Action card) switch tabs and
-pre-fill the target form rather than scrolling to an anchor. Collapses to horizontal tab pills
-below 860px.
+Each company opens into a workspace: an icon sidebar (company summary + Dashboard/AI Compliance
+Officer/Documents/Vendors, with live counts) and a content pane that shows one section at a time.
+The sidebar also lists sections that don't exist yet as real features (Risks, Frameworks,
+Controls, Evidence, Tasks & Actions, Reports, Timeline, Settings) — visibly disabled and marked
+"Soon" rather than either omitted or (worse) linking to an empty page. Matching a reference SaaS
+dashboard design was a deliberate exercise in staying honest at the navigation level: every number
+and widget on the Dashboard tab (readiness ring, stat tiles, priorities, framework progress, risk
+distribution, recent activity) is computed from real data — no fabricated deadlines or a fake
+2-axis risk heatmap, since we don't track the underlying likelihood/impact data that would require.
+Cross-tab actions (e.g. "Generate this" from a Next Best Action card, "Ask AI Officer" from the
+Dashboard) switch tabs and pre-fill the target form. Collapses to stacked pills below 860px.
 
 ## Stack
 

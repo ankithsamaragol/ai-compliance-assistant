@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
+import { IconBuilding, IconShieldCheck, IconFileText, IconBook, IconSearch } from '../components/Icons';
 
 const SIZE_BANDS = ['1-10', '11-50', '51-200', '200+'];
 const DATA_TYPE_OPTIONS = ['customer_pii', 'payment_data', 'health_data', 'employee_data', 'usage_analytics'];
@@ -17,16 +18,54 @@ function toggleInArray(arr, value) {
   return arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 }
 
+function scoreColor(score) {
+  if (score >= 75) return 'var(--accent)';
+  if (score >= 40) return '#b8860b';
+  return 'var(--danger)';
+}
+
+const FRAMEWORK_SHORT = {
+  iso27001: 'ISO 27001', gdpr: 'GDPR', cmmc: 'CMMC', iso42001: 'ISO 42001',
+  risk_assessment: 'Risk', audit_evidence: 'Audit',
+};
+
 export default function Dashboard({ onOpenCompany }) {
   const [companies, setCompanies] = useState([]);
+  const [gapByCompany, setGapByCompany] = useState({});
+  const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm());
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.listCompanies().then(setCompanies).catch((err) => setError(err.message));
+    api.listCompanies().then((data) => {
+      setCompanies(data);
+      data.forEach((c) => {
+        api.getGapAnalysis(c.id).then((gap) => {
+          setGapByCompany((prev) => ({ ...prev, [c.id]: gap }));
+        }).catch(() => {});
+      });
+    }).catch((err) => setError(err.message));
   }, []);
+
+  const filteredCompanies = useMemo(
+    () => companies.filter((c) => c.name.toLowerCase().includes(search.toLowerCase())),
+    [companies, search],
+  );
+
+  const totals = useMemo(() => {
+    const gaps = Object.values(gapByCompany);
+    const avgReadiness = gaps.length
+      ? Math.round(gaps.reduce((sum, g) => {
+        const frameworkAvg = g.frameworks.reduce((s, f) => s + f.score, 0) / g.frameworks.length;
+        return sum + frameworkAvg;
+      }, 0) / gaps.length)
+      : 0;
+    const totalDocuments = gaps.reduce((sum, g) => sum + g.documentsReady, 0);
+    const frameworkCount = gaps[0]?.frameworks.length || 0;
+    return { avgReadiness, totalDocuments, frameworkCount };
+  }, [gapByCompany]);
 
   async function submit(e) {
     e.preventDefault();
@@ -40,6 +79,9 @@ export default function Dashboard({ onOpenCompany }) {
       };
       const company = await api.createCompany(payload);
       setCompanies((prev) => [company, ...prev]);
+      api.getGapAnalysis(company.id).then((gap) => {
+        setGapByCompany((prev) => ({ ...prev, [company.id]: gap }));
+      }).catch(() => {});
       setForm(emptyForm());
       setShowForm(false);
     } catch (err) {
@@ -53,11 +95,44 @@ export default function Dashboard({ onOpenCompany }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
         <div>
-          <h2 className="section-heading" style={{ marginBottom: 4 }}>Companies</h2>
-          <div className="meta">{companies.length} workspace{companies.length === 1 ? '' : 's'}</div>
+          <h2 className="section-heading" style={{ marginBottom: 4 }}>Your Companies</h2>
+          <div className="meta">Manage and monitor compliance across all your organizations.</div>
         </div>
         <button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : '+ New company'}</button>
       </div>
+
+      {companies.length > 0 && (
+        <div className="stats-bar">
+          <div className="stat-tile">
+            <div className="stat-tile-icon"><IconBuilding size={18} /></div>
+            <div><div className="stat-tile-value">{companies.length}</div><div className="stat-tile-label">Total companies</div></div>
+          </div>
+          <div className="stat-tile">
+            <div className="stat-tile-icon"><IconShieldCheck size={18} /></div>
+            <div><div className="stat-tile-value">{totals.avgReadiness}%</div><div className="stat-tile-label">Average readiness</div></div>
+          </div>
+          <div className="stat-tile">
+            <div className="stat-tile-icon"><IconFileText size={18} /></div>
+            <div><div className="stat-tile-value">{totals.totalDocuments}</div><div className="stat-tile-label">Total documents</div></div>
+          </div>
+          <div className="stat-tile">
+            <div className="stat-tile-icon"><IconBook size={18} /></div>
+            <div><div className="stat-tile-value">{totals.frameworkCount}</div><div className="stat-tile-label">Frameworks tracked</div></div>
+          </div>
+        </div>
+      )}
+
+      {companies.length > 0 && (
+        <div className="company-search" style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 11, top: 10, color: 'var(--muted)' }}><IconSearch size={16} /></span>
+          <input
+            placeholder="Search companies…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ paddingLeft: 34 }}
+          />
+        </div>
+      )}
 
       {showForm && (
         <div className="panel">
@@ -192,18 +267,36 @@ export default function Dashboard({ onOpenCompany }) {
         </div>
       )}
 
+      {companies.length > 0 && filteredCompanies.length === 0 && (
+        <div className="panel" style={{ textAlign: 'center', padding: '32px 20px' }}>
+          <div className="meta">No companies match "{search}".</div>
+        </div>
+      )}
+
       <div className="company-grid">
-        {companies.map((c) => (
-          <div className="company-card" key={c.id} onClick={() => onOpenCompany(c)}>
-            <div className="company-card-name">{c.name}</div>
-            <div className="meta">{c.industry}</div>
-            <div className="meta">{c.size_band} employees · {c.country}</div>
-            <div className="company-card-footer">
-              <span className="meta">{new Date(c.created_at).toLocaleDateString()}</span>
-              <span className="view-link">Open →</span>
+        {filteredCompanies.map((c) => {
+          const gap = gapByCompany[c.id];
+          return (
+            <div className="company-card" key={c.id} onClick={() => onOpenCompany(c)}>
+              <div className="company-card-name">{c.name}</div>
+              <div className="meta">{c.industry}</div>
+              <div className="meta">{c.size_band} employees · {c.country}</div>
+              {gap && (
+                <div className="framework-pill-row">
+                  {gap.frameworks.map((fw) => (
+                    <span key={fw.key} className="framework-pill" style={{ color: scoreColor(fw.score) }}>
+                      {FRAMEWORK_SHORT[fw.key] || fw.label} {fw.score}%
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="company-card-footer">
+                <span className="meta">Updated {new Date(c.updated_at || c.created_at).toLocaleDateString()}</span>
+                <span className="view-link">Open workspace →</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
