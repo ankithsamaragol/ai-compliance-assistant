@@ -120,7 +120,9 @@ export default function Evidence({ company, providers, provider, setProvider, on
             <h3 style={{ margin: 0 }}>Connected sources</h3>
             <div className="meta" style={{ marginTop: 4 }}>
               Auto-pull compliance signals directly from your tools instead of manually uploading proof.
-              v1 supports GitHub only, read-only (<code>read:org</code> scope), checking org-wide 2FA enforcement.
+              v1 supports GitHub only, read-only (<code>read:org</code> scope) — checks org-wide 2FA
+              enforcement, default repository permission, and public-repo creation policy. No repo
+              content access.
               Connected sources also re-sync automatically in the background (roughly every 24h,
               while the server is running) — "Sync now" is there for an immediate check, not the
               only way it stays current.

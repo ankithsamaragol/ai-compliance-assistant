@@ -241,15 +241,34 @@ model — building all five at once wasn't realistic. GitHub was picked first be
 is the simplest of the five (AWS has no real OAuth — it's IAM roles/access keys, a worse place to
 start; Azure/Google need multi-step tenant consent).
 
-**Scope is intentionally minimal**: the `read:org` OAuth scope only (no `repo` access, so it never
-sees your code), and one signal — whether the GitHub organization enforces two-factor
-authentication for all members (`two_factor_requirement_enabled`, pulled live via
-`GET /orgs/{org}`). If the account belongs to multiple orgs, only the first is monitored and the
-evidence summary says so explicitly rather than silently picking one. Sync results are stored as a
-regular `evidence` row (`source: 'github'`) with the same shape AI-analyzed uploads use, so gap
-scoring, the checklist, and the dashboard all treat a connector fact identically to an uploaded
-document — verified end-to-end: connecting and syncing moved CMMC's "Access Control Implementation
-Evidence" item the same way an uploaded PDF would.
+**Scope is intentionally minimal**: the `read:org` OAuth scope only — no `repo` access, so it never
+sees repository contents, and adding branch protection / secret scanning checks would require
+expanding to that broader scope. That tradeoff was surfaced explicitly rather than silently
+expanded; the decision was to stay within `read:org` and get more value out of org-level policy
+fields instead. Three signals, all from a single `GET /orgs/{org}` call:
+- `two_factor_requirement_enabled` — org-wide 2FA enforcement
+- `members_can_create_public_repositories` — combined with the 2FA signal into one access-control
+  finding (they speak to the same checklist item, so they don't render as two duplicate pills)
+- `default_repository_permission` — a distinct signal (configuration baseline), `"none"`/`"read"`
+  counts as a least-privilege default
+
+GitHub's docs mark the "Security & Analysis" fields on this same endpoint (dependency graph, secret
+scanning, Dependabot enablement) as **deprecated** — confirmed by reading the current API docs
+before building, not assumed from memory. Those were excluded entirely rather than built against a
+field GitHub might remove, the same live-verify-before-trusting discipline that led to reverting
+the personal-2FA fallback below. `computeOrgFindings()` in `server/src/services/connectors/github.js`
+is a pure function kept separate from the API call specifically so it's unit-testable with synthetic
+org payloads — the account this was built against has no live GitHub organization, so the branching
+logic was verified with 5 synthetic scenarios (strong posture, weak posture, mixed, non-owner
+visibility, least-privilege permission), but GitHub's actual field behavior for these three fields
+hasn't been confirmed against a real org the way the original 2FA signal was.
+
+If the account belongs to multiple orgs, only the first is monitored and the evidence summary says
+so explicitly rather than silently picking one. Sync results are stored as a regular `evidence` row
+(`source: 'github'`) with the same shape AI-analyzed uploads use, so gap scoring, the checklist, and
+the dashboard all treat a connector fact identically to an uploaded document — verified end-to-end:
+connecting and syncing moved CMMC's "Access Control Implementation Evidence" item the same way an
+uploaded PDF would.
 
 **No org on the account, no signal — and that's a real API limit, not a bug**: if the connected
 account isn't part of a GitHub organization, there's genuinely nothing to check. A personal-account
@@ -273,10 +292,9 @@ rather than guessing or silently succeeding.
   (`.env.example` has the exact values needed) — this app cannot and should not create that
   registration on your behalf.
 
-**Known limitation**: single-org only, one signal. The pattern (OAuth → encrypted token → live API
-pull → evidence row → gap scoring) is proven and designed to extend — more GitHub signals (branch
-protection, secret scanning, Dependabot) or additional providers are the natural next increment,
-not a rebuild.
+**Known limitation**: single-org only, three org-level policy signals. Branch protection and secret
+scanning would need the broader `repo` scope (a deliberate tradeoff, not built yet); additional
+providers are the other natural next increment.
 
 ## Compliance Memory / Timeline (Phase 5 foundation)
 
@@ -351,8 +369,9 @@ API call on each of those would be wasteful and a good way to trip a rate limit 
 - No built-in e-signature or audit-trail logging of who approved a document
 - Evidence Intelligence is text-only (see above) — screenshot/image analysis needs a vision-capable
   provider path, not yet built
-- Cloud Connectors cover GitHub only, one signal (org 2FA enforcement) — AWS/Azure/M365/Google and
-  additional GitHub signals (branch protection, secret scanning) are the natural next increment
+- Cloud Connectors cover GitHub only, three org-level policy signals (2FA enforcement, default repo
+  permission, public-repo creation policy) — AWS/Azure/M365/Google are the natural next provider;
+  branch protection/secret scanning would need the broader `repo` OAuth scope (deliberate tradeoff)
 - Gap analysis checklist items are curated, not a full ISO 27001 Annex A (93 controls) or
   GDPR article-by-article mapping — it's honest about what it checks, not exhaustive
 - Trend deltas need 7+ days of real usage history before they appear — by design, not a bug

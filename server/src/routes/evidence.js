@@ -54,7 +54,7 @@ router.get('/', async (req, res, next) => {
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
-      `SELECT id, original_name, mime_type, size_bytes, status, summary, mapped_controls, provider, model, error, uploaded_at, analyzed_at
+      `SELECT id, original_name, mime_type, size_bytes, status, summary, mapped_controls, provider, model, error, source, uploaded_at, analyzed_at
        FROM evidence WHERE company_id = $1 ORDER BY uploaded_at DESC`,
       [companyId],
     );

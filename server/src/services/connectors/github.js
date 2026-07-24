@@ -1,5 +1,9 @@
-// GitHub OAuth connector — v1 scope is deliberately minimal: the `read:org` scope only, and a
-// single deterministic signal (org-wide 2FA enforcement). No repo/write access is requested.
+// GitHub OAuth connector — scope is deliberately minimal: `read:org` only, no `repo` access, so
+// it never sees repository contents. Signals are limited to org-level policy fields from
+// GET /orgs/{org} that GitHub's own docs do NOT mark deprecated as of this writing — the
+// "Security & Analysis" fields (dependency graph / secret scanning / Dependabot enablement) are
+// explicitly documented as deprecated on this endpoint and were excluded for that reason, the
+// same live-verify-before-trusting discipline that led to reverting the personal-2FA fallback.
 const AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
 const TOKEN_URL = 'https://github.com/login/oauth/access_token';
 const API_BASE = 'https://api.github.com';
@@ -69,6 +73,64 @@ function noOrgResult(note) {
   return { orgLogin: null, summary, mapped_controls: [] };
 }
 
+const LEAST_PRIVILEGE_PERMISSIONS = new Set(['none', 'read']);
+
+// Pure function, deliberately separated from the network call above it: turns a GET /orgs/{org}
+// payload into findings + mapped_controls. Kept pure so it's unit-testable with synthetic org
+// objects — the account this was built and tested against has no live GitHub organization, so
+// this logic could be verified for correctness but not GitHub's actual field behavior, unlike the
+// 2FA signal which was confirmed against a real org. Every field is read defensively (undefined is
+// treated as "not visible," never coerced to a false negative), same discipline as the reverted
+// personal-2FA fallback.
+function computeOrgFindings(org) {
+  const findings = [];
+  const mapped_controls = [];
+
+  // Signal 1: org-wide 2FA enforcement + Signal 3 (public repo creation) both speak to the same
+  // checklist item (access control), so they're combined into one mapped_controls entry instead
+  // of two duplicate pills for the same target.
+  const accessControlReasons = [];
+  let accessControlConfidence = null;
+
+  if (org.two_factor_requirement_enabled === true) {
+    findings.push('enforces two-factor authentication for all members');
+    accessControlReasons.push('two-factor authentication is enforced for all members');
+    accessControlConfidence = 'high';
+  } else if (org.two_factor_requirement_enabled === false) {
+    findings.push('does NOT enforce two-factor authentication for all members');
+  }
+
+  if (org.members_can_create_public_repositories === false) {
+    findings.push('restricts members from creating public repositories');
+    accessControlReasons.push('members cannot create public repositories (reduces accidental data exposure)');
+    if (!accessControlConfidence) accessControlConfidence = 'medium';
+  } else if (org.members_can_create_public_repositories === true) {
+    findings.push('allows members to create public repositories without restriction');
+  }
+
+  if (accessControlReasons.length) {
+    mapped_controls.push({
+      framework: 'cmmc', key: 'access_evidence', confidence: accessControlConfidence,
+      reasoning: `GitHub org "${org.login}": ${accessControlReasons.join('; ')} (live API check).`,
+    });
+  }
+
+  // Signal 2: default repository permission — a distinct checklist item (configuration baseline),
+  // not folded into access_evidence above.
+  if (org.default_repository_permission) {
+    const perm = org.default_repository_permission;
+    findings.push(`sets default repository permission to "${perm}"`);
+    if (LEAST_PRIVILEGE_PERMISSIONS.has(perm)) {
+      mapped_controls.push({
+        framework: 'cmmc', key: 'config_baseline', confidence: 'medium',
+        reasoning: `Default repository permission is "${perm}" (least-privilege default for new members), confirmed live via GitHub API.`,
+      });
+    }
+  }
+
+  return { findings, mapped_controls };
+}
+
 // Pulls the current compliance-relevant facts and shapes them exactly like an evidenceIntelligence
 // result (summary + mapped_controls), so gap-analysis scoring treats connector-derived evidence
 // identically to AI-analyzed uploads.
@@ -78,25 +140,14 @@ async function syncSignals(accessToken) {
     return noOrgResult(note);
   }
 
-  const twoFactorEnforced = org.two_factor_requirement_enabled;
-  const mapped_controls = [];
-  let summary;
-
-  if (twoFactorEnforced === true) {
-    summary = `GitHub organization "${org.login}" enforces two-factor authentication for all members (verified live via GitHub API).`;
-    mapped_controls.push({
-      framework: 'cmmc', key: 'access_evidence', confidence: 'high',
-      reasoning: `GitHub org "${org.login}" has two_factor_requirement_enabled=true, confirmed via a live API call, not a static document.`,
-    });
-  } else if (twoFactorEnforced === false) {
-    summary = `GitHub organization "${org.login}" does NOT currently enforce two-factor authentication for all members.`;
-  } else {
-    summary = `GitHub organization "${org.login}" connected, but 2FA enforcement status wasn't visible — this usually means the connected account isn't an organization owner.`;
-  }
+  const { findings, mapped_controls } = computeOrgFindings(org);
+  let summary = findings.length
+    ? `GitHub organization "${org.login}" ${findings.join('; ')}.`
+    : `GitHub organization "${org.login}" connected, but none of the checked policy fields were visible — this usually means the connected account isn't an organization owner.`;
 
   if (note) summary = `${summary} (${note})`;
 
   return { orgLogin: org.login, summary, mapped_controls };
 }
 
-module.exports = { getAuthorizeUrl, exchangeCodeForToken, syncSignals };
+module.exports = { getAuthorizeUrl, exchangeCodeForToken, syncSignals, computeOrgFindings };
