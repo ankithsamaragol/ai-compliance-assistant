@@ -3,7 +3,7 @@ const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { computeGapAnalysis } = require('../services/gapAnalysis');
 const { evidenceTargets } = require('../services/evidenceIntelligence');
-const { getWeeklyTrend, getTimeline } = require('../services/scoreHistory');
+const { getWeeklyTrend, getTimeline, getLatestInsight } = require('../services/scoreHistory');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -23,9 +23,10 @@ router.get('/gap-analysis', async (req, res, next) => {
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
     if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
 
-    const [result, weekAgo] = await Promise.all([
+    const [result, weekAgo, latestInsight] = await Promise.all([
       computeGapAnalysis(companyId),
       getWeeklyTrend(companyId),
+      getLatestInsight(companyId),
     ]);
 
     // Only present once real history 7+ days old exists — no fallback to "closest available",
@@ -37,6 +38,7 @@ router.get('/gap-analysis', async (req, res, next) => {
       evidenceDelta: result.evidenceCount - weekAgo.evidence_count,
       sinceDate: weekAgo.created_at,
     } : null;
+    result.latestInsight = latestInsight;
 
     res.json(result);
   } catch (err) { next(err); }

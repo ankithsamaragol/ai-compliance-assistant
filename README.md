@@ -301,6 +301,29 @@ The **Timeline** tab (`client/src/pages/Timeline.jsx`) lists every recorded snap
 with the score at that point and the delta from the previous one — a real, auditable history of
 compliance progress, which is also literally the vision doc's "Compliance Timeline" capability.
 
+## Proactive AI Compliance Officer
+
+An early informal review of this project (fed the README into ChatGPT for a founder-style
+critique) landed on one piece of actionable feedback worth keeping: "the product waits for
+users" — the AI Officer was a chat window you had to go ask, never something that told you
+anything on its own. This closes that gap using the same four trigger points score history
+already hooks into.
+
+Every `recordSnapshot()` call (document generated, vendors detected, evidence analyzed, connector
+synced) also composes an `insight` — a short message describing what changed and what's next —
+and stores it on that snapshot. The Dashboard's AI Compliance Officer card shows the most recent
+one instead of a static "ask me anything" prompt, e.g. *"Document generated — Data Processing
+Agreement (DPA). This moved your score 25%→30%. Next: 'Record of Processing Activities (ROPA)'
+would add 17 more points."*
+
+**Deliberately not AI-generated.** `composeInsight()` in `server/src/services/scoreHistory.js` is
+a plain template over numbers already computed (previous score, current score, top next action) —
+no LLM call. It fires on every single action across four different routes, so it has to be
+instant, free, and structurally unable to hallucinate; an AI call there would add latency, cost,
+and a new failure surface to something that needs to be reliable every time. The deep-dive
+reasoning surface remains Compliance Chat, which already does full grounded AI reasoning — this is
+just the proactive "here's what happened" layer sitting on top of it.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)

@@ -182,7 +182,12 @@ export default function ComplianceGapAnalysis({
           </div>
           <div className="hero-ai-message">
             <span className="hero-ai-message-icon"><IconMessageCircle size={12} /></span>
-            <span>Ask anything about {company.name}'s vendors, gaps, and compliance status — grounded in the real data on file.</span>
+            <span>
+              {data.latestInsight
+                ? data.latestInsight.insight
+                : `Ask anything about ${company.name}'s vendors, gaps, and compliance status — grounded in the real data on file.`}
+              {data.latestInsight && <span className="meta" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>{timeAgo(data.latestInsight.created_at)}</span>}
+            </span>
           </div>
           {topAction && (
             <>

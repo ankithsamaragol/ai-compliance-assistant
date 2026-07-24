@@ -117,8 +117,11 @@ CREATE TABLE IF NOT EXISTS score_snapshots (
   open_risks        INTEGER NOT NULL,
   trigger           TEXT NOT NULL,      -- document_generated | vendor_detected | evidence_analyzed | connector_synced
   trigger_detail    TEXT,               -- e.g. document title, "4 vendors detected", filename
+  insight           TEXT,               -- deterministic, computed message: what changed + what's next
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE score_snapshots ADD COLUMN IF NOT EXISTS insight TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
