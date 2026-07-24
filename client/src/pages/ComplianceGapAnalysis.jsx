@@ -49,6 +49,16 @@ function greetingWord() {
   return 'Good evening';
 }
 
+function TrendLabel({ delta, suffix = '' }) {
+  if (delta === null || delta === undefined || delta === 0) return null;
+  const positive = delta > 0;
+  return (
+    <span style={{ fontSize: 10.5, fontWeight: 700, color: positive ? '#2e8b52' : 'var(--danger)', marginTop: 2, display: 'block' }}>
+      {positive ? '↑' : '↓'} {Math.abs(delta)}{suffix} this week
+    </span>
+  );
+}
+
 const STAT_COLORS = [
   { bg: 'rgba(122,140,255,0.14)', color: '#7a8cff' },
   { bg: 'rgba(255,170,80,0.16)', color: '#e08a2e' },
@@ -92,9 +102,7 @@ export default function ComplianceGapAnalysis({
   if (error) return <div className="panel"><div className="error">{error}</div></div>;
   if (!data) return null;
 
-  const overallScore = data.frameworks.length
-    ? Math.round(data.frameworks.reduce((sum, f) => sum + f.score, 0) / data.frameworks.length)
-    : 0;
+  const overallScore = data.overallScore;
   const tag = readinessTag(overallScore);
   const risk = riskLevel(data.openRisks);
   const topAction = data.nextActions?.[0];
@@ -146,6 +154,18 @@ export default function ComplianceGapAnalysis({
           </div>
           <div className="hero-readiness-body">
             <span className="hero-readiness-tag" style={{ background: tag.bg, color: tag.color }}>{tag.label}</span>
+            {data.trend && data.trend.scoreDelta !== 0 && (
+              <span
+                className="hero-readiness-tag"
+                style={{
+                  background: data.trend.scoreDelta > 0 ? 'rgba(122,200,150,0.18)' : 'rgba(255,107,107,0.18)',
+                  color: data.trend.scoreDelta > 0 ? '#8fe0ab' : '#ff9d9d',
+                  marginLeft: 6,
+                }}
+              >
+                {data.trend.scoreDelta > 0 ? '↑' : '↓'} {Math.abs(data.trend.scoreDelta)}% this week
+              </span>
+            )}
             <h3>Average readiness across {data.frameworks.length} frameworks</h3>
             <p>
               {topAction
@@ -181,7 +201,11 @@ export default function ComplianceGapAnalysis({
       <div className="stat-tiles">
         <div className="stat-tile">
           <div className="stat-tile-icon" style={{ background: STAT_COLORS[0].bg, color: STAT_COLORS[0].color }}><IconShieldCheck size={18} /></div>
-          <div><div className="stat-tile-value">{overallScore}%</div><div className="stat-tile-label">Compliance score</div></div>
+          <div>
+            <div className="stat-tile-value">{overallScore}%</div>
+            <div className="stat-tile-label">Compliance score</div>
+            <TrendLabel delta={data.trend?.scoreDelta} suffix="%" />
+          </div>
         </div>
         <div className="stat-tile">
           <div className="stat-tile-icon" style={{ background: STAT_COLORS[1].bg, color: risk.color }}><IconAlertTriangle size={18} /></div>
@@ -189,11 +213,19 @@ export default function ComplianceGapAnalysis({
         </div>
         <div className="stat-tile">
           <div className="stat-tile-icon" style={{ background: STAT_COLORS[2].bg, color: STAT_COLORS[2].color }}><IconFileText size={18} /></div>
-          <div><div className="stat-tile-value">{data.documentsReady}</div><div className="stat-tile-label">Documents</div></div>
+          <div>
+            <div className="stat-tile-value">{data.documentsReady}</div>
+            <div className="stat-tile-label">Documents</div>
+            <TrendLabel delta={data.trend?.documentsDelta} />
+          </div>
         </div>
         <div className="stat-tile">
           <div className="stat-tile-icon" style={{ background: STAT_COLORS[3].bg, color: STAT_COLORS[3].color }}><IconBuilding size={18} /></div>
-          <div><div className="stat-tile-value">{data.vendorCount}</div><div className="stat-tile-label">Vendors</div></div>
+          <div>
+            <div className="stat-tile-value">{data.vendorCount}</div>
+            <div className="stat-tile-label">Vendors</div>
+            <TrendLabel delta={data.trend?.vendorsDelta} />
+          </div>
         </div>
         <div className="stat-tile">
           <div className="stat-tile-icon" style={{ background: STAT_COLORS[4].bg, color: STAT_COLORS[4].color }}><IconBook size={18} /></div>
@@ -201,7 +233,11 @@ export default function ComplianceGapAnalysis({
         </div>
         <div className="stat-tile">
           <div className="stat-tile-icon" style={{ background: STAT_COLORS[5].bg, color: STAT_COLORS[5].color }}><IconClipboard size={18} /></div>
-          <div><div className="stat-tile-value">{data.evidenceCount || 0}</div><div className="stat-tile-label">Evidence</div></div>
+          <div>
+            <div className="stat-tile-value">{data.evidenceCount || 0}</div>
+            <div className="stat-tile-label">Evidence</div>
+            <TrendLabel delta={data.trend?.evidenceDelta} />
+          </div>
         </div>
       </div>
 

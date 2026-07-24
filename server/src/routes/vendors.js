@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { detectVendors } = require('../services/vendorRegister');
+const { recordSnapshot } = require('../services/scoreHistory');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -72,6 +73,7 @@ router.post('/detect', detectLimiter, async (req, res, next) => {
        ORDER BY CASE risk_tier WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, name`,
       [companyId],
     );
+    await recordSnapshot(companyId, 'vendor_detected', `${rows.length} vendor${rows.length === 1 ? '' : 's'} detected`);
     res.status(201).json({ vendors: rows, model, provider: usedProvider });
   } catch (err) { next(err); }
 });

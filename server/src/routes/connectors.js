@@ -5,6 +5,7 @@ const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { encrypt, decrypt } = require('../services/crypto');
 const github = require('../services/connectors/github');
+const { recordSnapshot } = require('../services/scoreHistory');
 
 const router = express.Router();
 
@@ -78,6 +79,7 @@ router.post('/github/sync', requireAuth, async (req, res, next) => {
          WHERE id = $2 RETURNING id, provider, external_account, scopes, status, error, last_synced_at, connected_at`,
         [signals.orgLogin, connector.id],
       );
+      await recordSnapshot(companyId, 'connector_synced', 'GitHub');
       res.json(updated[0]);
     } catch (syncErr) {
       const { rows: updated } = await pool.query(
@@ -138,6 +140,7 @@ router.get('/github/callback', async (req, res) => {
       [company.id, signals.orgLogin, encrypt(accessToken), scopes],
     );
     await upsertGithubEvidence(company.id, signals);
+    await recordSnapshot(company.id, 'connector_synced', 'GitHub');
 
     backToApp('success');
   } catch (err) {

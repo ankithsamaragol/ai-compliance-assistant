@@ -96,11 +96,14 @@ async function computeGapAnalysis(companyId) {
   const crossFrameworkHints = computeCrossFrameworkHints(frameworks);
 
   const openRisks = vendorRows.filter((v) => v.risk_tier === 'critical' || v.risk_tier === 'high').length;
+  const overallScore = frameworks.length
+    ? Math.round(frameworks.reduce((sum, f) => sum + f.score, 0) / frameworks.length)
+    : 0;
 
   return {
     frameworks, nextActions, crossFrameworkHints, openRisks,
     documentsReady: docs.length, vendorCount: ctx.vendorCount,
-    evidenceCount: evidenceRows.length,
+    evidenceCount: evidenceRows.length, overallScore,
   };
 }
 

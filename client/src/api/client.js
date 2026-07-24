@@ -42,6 +42,7 @@ export const api = {
 
   getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
   getEvidenceTargets: () => request('/compliance/evidence-targets'),
+  getTimeline: (companyId) => request(`/compliance/timeline?companyId=${companyId}`),
 
   listConnectors: (companyId) => request(`/connectors?companyId=${companyId}`),
   startGithubConnect: (companyId) => request(`/connectors/github/start?companyId=${companyId}`),

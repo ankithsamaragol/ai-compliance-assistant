@@ -275,6 +275,29 @@ pull → evidence row → gap scoring) is proven and designed to extend — more
 protection, secret scanning, Dependabot) or additional providers are the natural next increment,
 not a rebuild.
 
+## Compliance Memory / Timeline (Phase 5 foundation)
+
+The product-vision doc's Phase 5 is a unified "AI Compliance Officer" with memory, prediction, and
+simulation — a big step with no existing data to build on. This is the first piece of that
+foundation: a `score_snapshots` table that records the full compliance state (overall score,
+per-framework scores, document/vendor/evidence counts) every time something that could actually
+move the score happens — a document is generated, vendors are detected, evidence is analyzed, or a
+connector syncs (`server/src/services/scoreHistory.js`, called from each of those four routes).
+
+**Never on a timer, never backfilled.** There's no cron job manufacturing daily data points, and
+no synthetic history was inserted for existing companies — the timeline starts empty and only
+gains entries from real actions going forward. This directly resolves something deliberately left
+unbuilt during the earlier dashboard redesign: trend deltas like "↑8% this week" were refused at
+the time because there was no historical data to compute them from honestly. They're real now —
+`getWeeklyTrend()` compares the current score to the nearest snapshot **at least 7 days old**, and
+returns `null` (not a fallback to whatever's closest) until a company has that much real history.
+The dashboard and stat tiles simply omit the trend badges until then, rather than showing a
+same-day comparison mislabeled as "this week."
+
+The **Timeline** tab (`client/src/pages/Timeline.jsx`) lists every recorded snapshot chronologically
+with the score at that point and the delta from the previous one — a real, auditable history of
+compliance progress, which is also literally the vision doc's "Compliance Timeline" capability.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -288,3 +311,4 @@ not a rebuild.
   additional GitHub signals (branch protection, secret scanning) are the natural next increment
 - Gap analysis checklist items are curated, not a full ISO 27001 Annex A (93 controls) or
   GDPR article-by-article mapping — it's honest about what it checks, not exhaustive
+- Trend deltas need 7+ days of real usage history before they appear — by design, not a bug

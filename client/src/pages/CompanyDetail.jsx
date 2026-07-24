@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, getToken } from '../api/client';
 import VendorRegister from './VendorRegister';
 import Evidence from './Evidence';
+import Timeline from './Timeline';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 import ComplianceChat from './ComplianceChat';
 import {
@@ -21,7 +22,7 @@ const NAV = [
   { key: 'evidence', label: 'Evidence', icon: IconClipboard, enabled: true },
   { key: 'tasks', label: 'Tasks & Actions', icon: IconCheckSquare, enabled: false },
   { key: 'reports', label: 'Reports', icon: IconFileText, enabled: false },
-  { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: false },
+  { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: true },
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: false },
 ];
 
@@ -288,6 +289,8 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
               }}
             />
           )}
+
+          {activeTab === 'timeline' && <Timeline company={company} />}
       </main>
     </div>
   );

@@ -8,6 +8,7 @@ const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { extractText } = require('../services/evidenceExtract');
 const { analyzeEvidence } = require('../services/evidenceIntelligence');
+const { recordSnapshot } = require('../services/scoreHistory');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -97,6 +98,7 @@ router.post('/upload', uploadLimiter, upload.single('file'), async (req, res, ne
          WHERE id = $5 RETURNING *`,
         [summary, JSON.stringify(mapped_controls), usedProvider, model, evidenceId],
       );
+      await recordSnapshot(companyId, 'evidence_analyzed', req.file.originalname);
       res.status(201).json(rows[0]);
     } catch (analysisErr) {
       const { rows } = await pool.query(

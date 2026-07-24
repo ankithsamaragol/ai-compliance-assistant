@@ -106,9 +106,24 @@ CREATE TABLE IF NOT EXISTS connectors (
   UNIQUE (company_id, provider)
 );
 
+CREATE TABLE IF NOT EXISTS score_snapshots (
+  id                SERIAL PRIMARY KEY,
+  company_id        INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  overall_score     INTEGER NOT NULL,
+  framework_scores  JSONB NOT NULL,     -- {iso27001: 40, gdpr: 33, cmmc: 29, iso42001: 14}
+  documents_ready   INTEGER NOT NULL,
+  vendor_count      INTEGER NOT NULL,
+  evidence_count    INTEGER NOT NULL,
+  open_risks        INTEGER NOT NULL,
+  trigger           TEXT NOT NULL,      -- document_generated | vendor_detected | evidence_analyzed | connector_synced
+  trigger_detail    TEXT,               -- e.g. document title, "4 vendors detected", filename
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_company ON chat_messages(company_id);
 CREATE INDEX IF NOT EXISTS idx_evidence_company ON evidence(company_id);
 CREATE INDEX IF NOT EXISTS idx_connectors_company ON connectors(company_id);
+CREATE INDEX IF NOT EXISTS idx_score_snapshots_company ON score_snapshots(company_id, created_at);

@@ -5,6 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 const { generateDocument, listProviders } = require('../services/generateDocument');
 const { exportToDocx } = require('../services/exportDocx');
 const { listFrameworks, getDocTypeDef } = require('../templates/catalog');
+const { recordSnapshot } = require('../services/scoreHistory');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -73,6 +74,7 @@ router.post('/generate', generateLimiter, async (req, res, next) => {
         `UPDATE documents SET status = 'ready', content_md = $1, model = $2, provider = $3, updated_at = now() WHERE id = $4 RETURNING *`,
         [contentMd, model, usedProvider, documentId],
       );
+      if (framework !== 'executive_report') await recordSnapshot(companyId, 'document_generated', def.title);
       res.status(201).json(rows[0]);
     } catch (genErr) {
       await pool.query(
