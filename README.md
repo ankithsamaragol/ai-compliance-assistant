@@ -12,6 +12,9 @@ kits, not software — only 4% of contractors feel audit-ready), and AI governan
 EU AI Act), where no incumbent has entrenched dominance yet since the EU AI Act only phases in
 through 2026. Both are additive to the existing catalog, not a rebuild.
 
+See [ROADMAP.md](./ROADMAP.md) for phase-by-phase status against the product-vision doc this was
+built from, and what's next.
+
 ## UI
 
 Each company opens into a workspace with a fixed-left icon sidebar (brand at top, company
