@@ -11,6 +11,7 @@ const chatRoutes = require('./routes/chat');
 const reportsRoutes = require('./routes/reports');
 const evidenceRoutes = require('./routes/evidence');
 const connectorsRoutes = require('./routes/connectors');
+const { startConnectorScheduler } = require('./services/connectorScheduler');
 
 const app = express();
 
@@ -47,4 +48,7 @@ app.use((err, req, res, next) => {
 });
 
 const port = process.env.PORT || 4300;
-app.listen(port, () => console.log(`AI Compliance Assistant API listening on :${port}`));
+app.listen(port, () => {
+  console.log(`AI Compliance Assistant API listening on :${port}`);
+  startConnectorScheduler();
+});

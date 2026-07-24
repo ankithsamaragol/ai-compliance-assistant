@@ -324,6 +324,24 @@ and a new failure surface to something that needs to be reliable every time. The
 reasoning surface remains Compliance Chat, which already does full grounded AI reasoning — this is
 just the proactive "here's what happened" layer sitting on top of it.
 
+## Continuous monitoring
+
+The other half of "the product waits for users": connected cloud connectors now re-sync
+themselves automatically instead of relying solely on a manual "Sync now" click.
+`server/src/services/connectorScheduler.js` runs an in-process interval (`CONNECTOR_SYNC_INTERVAL_HOURS`,
+default 24) that re-syncs every connected GitHub connector across every company, sharing the exact
+same sync logic the manual button uses (`server/src/services/connectors/syncConnector.js` —
+refactored out of the route handler so there's one code path, not two that could drift apart).
+Auto-syncs are tagged distinctly from manual ones in the Timeline (`"GitHub (auto-sync)"` vs
+`"GitHub"`), so it's always clear which happened when.
+
+**In-process, not a cron job — and that's a deliberate, disclosed limitation.** This only runs
+while the server process is alive, same as the rest of this local-first app; there's no OS-level
+scheduling (that would need the same Full Disk Access workaround already documented for backups,
+for something that only matters while the server is running anyway). It also does **not** sync on
+startup — `node --watch` restarts on every file save during development, and firing a real GitHub
+API call on each of those would be wasteful and a good way to trip a rate limit while iterating.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
