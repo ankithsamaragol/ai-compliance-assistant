@@ -360,6 +360,31 @@ for something that only matters while the server is running anyway). It also doe
 startup — `node --watch` restarts on every file save during development, and firing a real GitHub
 API call on each of those would be wasteful and a good way to trip a rate limit while iterating.
 
+## Business change detection
+
+Company profiles were create-only until now — there was no way to tell the app "we added a new
+vendor" or "we started using an LLM" after initial setup, so the compliance picture silently went
+stale. The **Settings** tab (`client/src/pages/Settings.jsx`) adds full profile editing
+(`PATCH /api/companies/:id`), and every save runs the before/after through
+`detectProfileChanges()` (`server/src/services/profileChangeDetection.js`) to decide whether the
+change is compliance-relevant enough to surface as an alert on the Dashboard.
+
+**Only additions are flagged, never removals** — dropping a vendor or data type isn't a new gap to
+close, so it stays silent; the same honesty-first principle used everywhere else in this app (real
+signal only, no generic "something changed" noise). Three triggers, each citing the actual changed
+value rather than a vague notice:
+- New cloud provider or tool → "the vendor register may not cover it yet" (jumps to Vendors)
+- New AI system → "ISO 42001 / AI governance documents may need review" (jumps to Documents)
+- New data type, or PII/EU-data flags flipping on → "GDPR documents may be out of date" (jumps to
+  Documents)
+
+Alerts are stored in `profile_change_alerts` (one row per triggered condition, not per field) and
+shown on the Dashboard above the readiness hero until dismissed
+(`POST /api/companies/:id/alerts/:alertId/dismiss`) — dismissal is per-alert and permanent, there's
+no snooze. `detectProfileChanges()` is a pure function deliberately kept separate from the route/DB
+code, verified with 6 synthetic before/after scenarios (including confirming removal-only changes
+produce zero alerts) before being wired into the live PATCH endpoint.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -375,3 +400,6 @@ API call on each of those would be wasteful and a good way to trip a rate limit 
 - Gap analysis checklist items are curated, not a full ISO 27001 Annex A (93 controls) or
   GDPR article-by-article mapping — it's honest about what it checks, not exhaustive
 - Trend deltas need 7+ days of real usage history before they appear — by design, not a bug
+- Business change detection only watches vendor/tool/AI-system/data-type/PII fields — editing name,
+  industry, size, country, or notes never raises an alert, since those don't map to a specific
+  checklist gap the way the watched fields do

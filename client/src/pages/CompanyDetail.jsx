@@ -5,6 +5,7 @@ import Evidence from './Evidence';
 import Timeline from './Timeline';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 import ComplianceChat from './ComplianceChat';
+import Settings from './Settings';
 import {
   IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding, IconBook,
   IconShieldCheck, IconClipboard, IconCheckSquare, IconFileText, IconClock, IconSettings,
@@ -23,10 +24,10 @@ const NAV = [
   { key: 'tasks', label: 'Tasks & Actions', icon: IconCheckSquare, enabled: false },
   { key: 'reports', label: 'Reports', icon: IconFileText, enabled: false },
   { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: true },
-  { key: 'settings', label: 'Settings', icon: IconSettings, enabled: false },
+  { key: 'settings', label: 'Settings', icon: IconSettings, enabled: true },
 ];
 
-export default function CompanyDetail({ company, onBack, userName, userEmail, onLogout }) {
+export default function CompanyDetail({ company, onBack, userName, userEmail, onLogout, onCompanyUpdated }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -179,6 +180,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
               onSelectDocumentAction={jumpToGenerate}
               onSelectVendorAction={jumpToVendors}
               onNavigateToChat={() => setActiveTab('chat')}
+              onNavigateToDocuments={() => setActiveTab('documents')}
               provider={provider}
               onReportGenerated={(doc) => {
                 setDocuments((prev) => [doc, ...prev]);
@@ -291,6 +293,14 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
           )}
 
           {activeTab === 'timeline' && <Timeline company={company} />}
+
+          {activeTab === 'settings' && (
+            <Settings
+              company={company}
+              onCompanyUpdated={onCompanyUpdated}
+              onAlertsCreated={() => setGapRefreshKey((k) => k + 1)}
+            />
+          )}
       </main>
     </div>
   );

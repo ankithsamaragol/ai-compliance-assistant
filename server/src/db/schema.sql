@@ -123,6 +123,15 @@ CREATE TABLE IF NOT EXISTS score_snapshots (
 
 ALTER TABLE score_snapshots ADD COLUMN IF NOT EXISTS insight TEXT;
 
+CREATE TABLE IF NOT EXISTS profile_change_alerts (
+  id                SERIAL PRIMARY KEY,
+  company_id        INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  message           TEXT NOT NULL,
+  suggested_action  TEXT,          -- 'vendors' | 'documents' | null
+  dismissed         BOOLEAN NOT NULL DEFAULT false,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);
@@ -130,3 +139,4 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_company ON chat_messages(company_id
 CREATE INDEX IF NOT EXISTS idx_evidence_company ON evidence(company_id);
 CREATE INDEX IF NOT EXISTS idx_connectors_company ON connectors(company_id);
 CREATE INDEX IF NOT EXISTS idx_score_snapshots_company ON score_snapshots(company_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_profile_change_alerts_company ON profile_change_alerts(company_id);

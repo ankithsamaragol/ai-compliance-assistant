@@ -2,6 +2,11 @@ const fs = require('fs/promises');
 const path = require('path');
 
 const PLAIN_TEXT_EXTENSIONS = new Set(['.txt', '.md', '.csv', '.log', '.json']);
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
+
+function isImageFile(originalName) {
+  return IMAGE_EXTENSIONS.has(path.extname(originalName).toLowerCase());
+}
 
 async function extractText(filePath, originalName) {
   const ext = path.extname(originalName).toLowerCase();
@@ -30,4 +35,4 @@ async function extractText(filePath, originalName) {
   };
 }
 
-module.exports = { extractText };
+module.exports = { extractText, isImageFile };

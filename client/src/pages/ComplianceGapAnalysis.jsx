@@ -70,10 +70,11 @@ const STAT_COLORS = [
 
 export default function ComplianceGapAnalysis({
   company, userName, refreshKey, onSelectDocumentAction, onSelectVendorAction, onNavigateToChat,
-  provider, onReportGenerated, documents,
+  onNavigateToDocuments, provider, onReportGenerated, documents,
 }) {
   const [data, setData] = useState(null);
   const [vendors, setVendors] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [error, setError] = useState('');
   const [reportError, setReportError] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -82,9 +83,19 @@ export default function ComplianceGapAnalysis({
   function load() {
     api.getGapAnalysis(company.id).then(setData).catch((err) => setError(err.message));
     api.listVendors(company.id).then(setVendors).catch(() => {});
+    api.listCompanyAlerts(company.id).then(setAlerts).catch(() => {});
   }
 
   useEffect(load, [company.id, refreshKey]);
+
+  async function dismissAlert(alertId) {
+    setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    try {
+      await api.dismissAlert(company.id, alertId);
+    } catch {
+      load();
+    }
+  }
 
   async function generateReport() {
     setReportError('');
@@ -137,6 +148,35 @@ export default function ComplianceGapAnalysis({
         </div>
       </div>
       {reportError && <div className="error" style={{ marginBottom: 12 }}>{reportError}</div>}
+
+      {alerts.length > 0 && (
+        <div className="panel" style={{ marginBottom: 14 }}>
+          <h3 style={{ marginTop: 0 }}><IconAlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} />Profile changes to review</h3>
+          {alerts.map((alert) => (
+            <div key={alert.id} className="priority-item">
+              <div className="priority-item-body">
+                <div className="priority-item-title">{alert.message}</div>
+              </div>
+              {alert.suggested_action && (
+                <button
+                  className="secondary"
+                  style={{ marginTop: 0, fontSize: 12 }}
+                  onClick={() => (alert.suggested_action === 'vendors' ? onSelectVendorAction?.() : onNavigateToDocuments?.())}
+                >
+                  {alert.suggested_action === 'vendors' ? 'Vendors' : 'Documents'}
+                </button>
+              )}
+              <button
+                className="secondary"
+                style={{ marginTop: 0, fontSize: 12 }}
+                onClick={() => dismissAlert(alert.id)}
+              >
+                Dismiss
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="dashboard-hero">
         <div className="hero-readiness">

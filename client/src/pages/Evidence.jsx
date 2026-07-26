@@ -163,8 +163,7 @@ export default function Evidence({ company, providers, provider, setProvider, on
           <h3 style={{ margin: 0 }}>Evidence</h3>
           <div className="meta" style={{ marginTop: 4 }}>
             Upload real evidence — AI reads it and maps it to specific compliance checklist items. Supported:
-            PDF, DOCX, TXT, MD, CSV, LOG, JSON (10MB max). Screenshots aren't AI-readable yet — upload for
-            record-keeping, but they won't auto-map.
+            PDF, DOCX, TXT, MD, CSV, LOG, and JSON (10MB max). Screenshots aren't supported yet.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

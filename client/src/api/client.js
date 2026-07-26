@@ -39,6 +39,9 @@ export const api = {
   listCompanies: () => request('/companies'),
   createCompany: (payload) => request('/companies', { method: 'POST', body: payload }),
   getCompany: (id) => request(`/companies/${id}`),
+  updateCompany: (id, patch) => request(`/companies/${id}`, { method: 'PATCH', body: patch }),
+  listCompanyAlerts: (id) => request(`/companies/${id}/alerts`),
+  dismissAlert: (companyId, alertId) => request(`/companies/${companyId}/alerts/${alertId}/dismiss`, { method: 'POST' }),
 
   getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
   getEvidenceTargets: () => request('/compliance/evidence-targets'),

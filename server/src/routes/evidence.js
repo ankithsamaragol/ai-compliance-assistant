@@ -6,7 +6,7 @@ const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
-const { extractText } = require('../services/evidenceExtract');
+const { extractText, isImageFile } = require('../services/evidenceExtract');
 const { analyzeEvidence } = require('../services/evidenceIntelligence');
 const { recordSnapshot } = require('../services/scoreHistory');
 
@@ -80,6 +80,15 @@ router.post('/upload', uploadLimiter, upload.single('file'), async (req, res, ne
     );
     const evidenceId = inserted[0].id;
 
+    // No vision-capable provider is wired up yet, so screenshots are stored but not analyzed.
+    if (isImageFile(req.file.originalname)) {
+      const { rows } = await pool.query(
+        `UPDATE evidence SET status = 'unsupported', error = $1 WHERE id = $2 RETURNING *`,
+        ['Screenshots aren\'t AI-readable yet — supported types are PDF, DOCX, TXT, MD, CSV, LOG, JSON. The file is still stored and visible in your evidence list.', evidenceId],
+      );
+      return res.status(201).json(rows[0]);
+    }
+
     const extraction = await extractText(savedPath, req.file.originalname);
     if (!extraction.supported) {
       const { rows } = await pool.query(
@@ -88,11 +97,11 @@ router.post('/upload', uploadLimiter, upload.single('file'), async (req, res, ne
       );
       return res.status(201).json(rows[0]);
     }
+    const extractedText = extraction.text;
 
     try {
-      const { summary, mapped_controls, provider: usedProvider, model } = await analyzeEvidence({
-        company, extractedText: extraction.text, filename: req.file.originalname, provider,
-      });
+      const { summary, mapped_controls, provider: usedProvider, model } =
+        await analyzeEvidence({ company, extractedText, filename: req.file.originalname, provider });
       const { rows } = await pool.query(
         `UPDATE evidence SET status = 'analyzed', summary = $1, mapped_controls = $2, provider = $3, model = $4, analyzed_at = now()
          WHERE id = $5 RETURNING *`,

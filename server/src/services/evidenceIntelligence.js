@@ -32,14 +32,13 @@ Checklist items you may map to (use the exact framework and key values shown —
 ${list}
 
 Rules:
-- Only map to items this evidence genuinely and specifically supports. If the text doesn't clearly support
+- Only map to items this evidence genuinely and specifically supports. If it doesn't clearly support
   any listed item, return an empty mapped_controls array — do not force a match.
-- One document may support multiple items if it genuinely covers more than one (e.g. a combined security
-  policy covering both training and backups).
-- confidence must be exactly one of "high", "medium", "low". Be conservative — most single documents should
-  be medium at best unless the evidence is unambiguous and complete for that specific item.
-- reasoning: one concise sentence citing what's actually in the text, not generic language.
-- summary: 1-2 sentences describing what this document actually is/contains, for a human skimming a list.
+- One piece of evidence may support multiple items if it genuinely covers more than one.
+- confidence must be exactly one of "high", "medium", "low". Be conservative — most single pieces of evidence
+  should be medium at best unless it's unambiguous and complete for that specific item.
+- reasoning: one concise sentence citing what's actually visible/present, not generic language.
+- summary: 1-2 sentences describing what this evidence actually shows/contains, for a human skimming a list.
 - Respond with ONLY raw JSON, no markdown fences, no prose before or after. Example shape:
 {"summary":"...","mapped_controls":[{"framework":"cmmc","key":"security_training","confidence":"medium","reasoning":"..."}]}`;
 }
@@ -52,31 +51,7 @@ function extractJson(text) {
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
-async function analyzeEvidence({ company, extractedText, filename, provider }) {
-  const providerKey = provider || DEFAULT_PROVIDER;
-  const impl = PROVIDERS[providerKey];
-  if (!impl) throw Object.assign(new Error(`Unknown provider: ${providerKey}`), { status: 400 });
-
-  const targets = evidenceTargets();
-  const systemPrompt = buildSystemPrompt(targets);
-  const trimmed = extractedText.trim();
-  if (!trimmed) {
-    return { summary: 'File appears to be empty or contains no extractable text.', mapped_controls: [], provider: providerKey, model: null };
-  }
-  const truncated = trimmed.length > MAX_TEXT_CHARS ? `${trimmed.slice(0, MAX_TEXT_CHARS)}\n\n[...truncated...]` : trimmed;
-
-  const userPrompt = `${companyProfileBlock(company)}
-
-Uploaded file: ${filename}
-
---- Extracted text ---
-${truncated}
---- end of text ---
-
-Task: analyze this evidence and return the JSON object as specified.`;
-
-  const { contentMd, model } = await impl.run({ systemPrompt, userPrompt });
-
+function sanitizeAnalysis(contentMd, targets) {
   let parsed;
   try {
     parsed = extractJson(contentMd);
@@ -85,7 +60,7 @@ Task: analyze this evidence and return the JSON object as specified.`;
   }
 
   const validKeys = new Set(targets.map((t) => `${t.framework}:${t.key}`));
-  const mapped = Array.isArray(parsed.mapped_controls)
+  const mapped_controls = Array.isArray(parsed.mapped_controls)
     ? parsed.mapped_controls
         .filter((m) => m && validKeys.has(`${m.framework}:${m.key}`) && VALID_CONFIDENCE.has(m.confidence))
         .map((m) => ({
@@ -99,10 +74,37 @@ Task: analyze this evidence and return the JSON object as specified.`;
 
   return {
     summary: parsed.summary ? String(parsed.summary).slice(0, 500) : null,
-    mapped_controls: mapped,
-    provider: providerKey,
-    model,
+    mapped_controls,
   };
+}
+
+async function analyzeEvidence({ company, extractedText, filename, provider }) {
+  const providerKey = provider || DEFAULT_PROVIDER;
+  const impl = PROVIDERS[providerKey];
+  if (!impl) throw Object.assign(new Error(`Unknown provider: ${providerKey}`), { status: 400 });
+
+  const targets = evidenceTargets();
+  const trimmed = extractedText.trim();
+  if (!trimmed) {
+    return { summary: 'File appears to be empty or contains no extractable text.', mapped_controls: [], provider: providerKey, model: null };
+  }
+  const truncated = trimmed.length > MAX_TEXT_CHARS ? `${trimmed.slice(0, MAX_TEXT_CHARS)}\n\n[...truncated...]` : trimmed;
+
+  const systemPrompt = buildSystemPrompt(targets);
+  const userPrompt = `${companyProfileBlock(company)}
+
+Uploaded file: ${filename}
+
+--- Extracted text ---
+${truncated}
+--- end of text ---
+
+Task: analyze this evidence and return the JSON object as specified.`;
+
+  const { contentMd, model } = await impl.run({ systemPrompt, userPrompt });
+  const { summary, mapped_controls } = sanitizeAnalysis(contentMd, targets);
+
+  return { summary, mapped_controls, provider: providerKey, model };
 }
 
 module.exports = { analyzeEvidence, evidenceTargets };

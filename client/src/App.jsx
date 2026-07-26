@@ -98,6 +98,7 @@ export default function App() {
             userEmail={userEmail}
             onLogout={logout}
             onBack={() => setOpenCompany(null)}
+            onCompanyUpdated={setOpenCompany}
           />
         )}
       </div>
