@@ -382,6 +382,32 @@ no snooze. `detectProfileChanges()` is a pure function deliberately kept separat
 code, verified with 6 synthetic before/after scenarios (including confirming removal-only changes
 produce zero alerts) before being wired into the live PATCH endpoint.
 
+## Risk prediction
+
+The `score_snapshots` table Phase 5's foundation built was sitting there recording real history but
+never used for anything forward-looking. `server/src/services/riskPrediction.js` is the first
+consumer: for each framework, it looks at that framework's own score across every recorded
+snapshot and reports one of four honest states — already at the 75% "on track" line (the same
+threshold the dashboard's readiness tag already uses, not a new number invented for this),
+not enough history yet, stalled, or genuinely on pace with a projected number of weeks to cross 75%
+at the current rate.
+
+**Deterministic, not an LLM guess about the future** — same reasoning as `composeInsight()`: a
+made-up-sounding ETA is worse than no ETA. Two guardrails keep it honest:
+- **`MIN_SPAN_HOURS` (6h)** — below this much real elapsed time between the earliest and latest
+  snapshot, any rate computed from it is mostly noise (e.g. two documents generated back-to-back),
+  so it reports `insufficient_data` instead of a wild projection.
+- **`STALL_THRESHOLD_HOURS` (24h)** — a framework with no recorded movement for a full day is
+  reported `stalled` with the real hours since it last changed, even if its *average* rate over
+  the full history is positive (an old burst of progress shouldn't paper over a currently flat
+  framework). A framework whose net rate is flat or negative despite a recent tick falls into the
+  same `stalled` bucket rather than producing a fake positive ETA.
+
+Verified with 7 synthetic scenarios (`node -e` script) covering all four states plus the two edge
+cases above, then checked against the one real company's actual history — which correctly came
+back "stalled" on all four frameworks, since none had moved in the prior 24+ hours. Shown as a
+"Risk prediction" panel on the Dashboard, between Framework progress and Risk distribution.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -400,3 +426,7 @@ produce zero alerts) before being wired into the live PATCH endpoint.
 - Business change detection only watches vendor/tool/AI-system/data-type/PII fields — editing name,
   industry, size, country, or notes never raises an alert, since those don't map to a specific
   checklist gap the way the watched fields do
+- Risk prediction is a simple rate-over-history per framework, not a forecasting model — no
+  seasonality, no cross-framework correlation, and no prediction for overall score, vendor count,
+  or evidence count (framework score is the only series with a meaningful 75% target to project
+  against)

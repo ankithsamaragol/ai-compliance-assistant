@@ -42,6 +42,25 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
+function formatHours(hours) {
+  if (hours < 48) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
+}
+
+const RISK_STATUS = {
+  on_target: { label: 'At target', color: '#2e8b52' },
+  projected: { label: 'On pace', color: 'var(--accent)' },
+  stalled: { label: 'Stalled', color: 'var(--danger)' },
+  insufficient_data: { label: 'Gathering history', color: 'var(--muted)' },
+};
+
+function riskDetail(fw) {
+  if (fw.status === 'on_target') return 'Already at or above the 75% target.';
+  if (fw.status === 'projected') return `+${fw.pointsPerWeek}pt/week — on pace to hit 75% in ~${fw.weeksToTarget} week${fw.weeksToTarget === 1 ? '' : 's'}.`;
+  if (fw.status === 'stalled') return `No measurable progress in the last ${formatHours(fw.stalledHours)}.`;
+  return 'Not enough history yet to predict a trend.';
+}
+
 function greetingWord() {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -75,6 +94,7 @@ export default function ComplianceGapAnalysis({
   const [data, setData] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [riskPrediction, setRiskPrediction] = useState(null);
   const [error, setError] = useState('');
   const [reportError, setReportError] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -84,6 +104,7 @@ export default function ComplianceGapAnalysis({
     api.getGapAnalysis(company.id).then(setData).catch((err) => setError(err.message));
     api.listVendors(company.id).then(setVendors).catch(() => {});
     api.listCompanyAlerts(company.id).then(setAlerts).catch(() => {});
+    api.getRiskPrediction(company.id).then(setRiskPrediction).catch(() => {});
   }
 
   useEffect(load, [company.id, refreshKey]);
@@ -325,6 +346,32 @@ export default function ComplianceGapAnalysis({
           ))}
         </div>
       </div>
+
+      {riskPrediction?.frameworks?.length > 0 && (
+        <div className="panel">
+          <h3 style={{ marginTop: 0 }}>Risk prediction</h3>
+          <div className="meta" style={{ fontSize: 12, marginBottom: 8 }}>
+            Based on real score history only — projects when a framework will cross the {riskPrediction.targetScore}%
+            "on track" line at its current pace, or flags it as stalled. No history yet, no projection.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {riskPrediction.frameworks.map((fw) => {
+              const status = RISK_STATUS[fw.status];
+              return (
+                <div key={fw.key} className="priority-item">
+                  <div className="priority-item-body">
+                    <div className="priority-item-title">{fw.label}</div>
+                    <div className="priority-item-meta">{riskDetail(fw)}</div>
+                  </div>
+                  <span className="status-badge" style={{ background: `${status.color}22`, color: status.color }}>
+                    {status.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="dashboard-columns">
         <div className="panel">
