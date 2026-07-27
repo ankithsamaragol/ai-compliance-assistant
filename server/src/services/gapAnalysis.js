@@ -36,6 +36,7 @@ function computeNextActions(frameworks, checklistByKey) {
       const entry = actions.get(actionKey) || {
         actionType: check.type,
         label: item.label,
+        why: item.why,
         framework: check.framework,
         docType: check.docType,
         affects: [],
@@ -77,6 +78,8 @@ async function computeGapAnalysis(companyId) {
     const items = def.items.map((item) => ({
       key: item.key,
       label: item.label,
+      why: item.why,
+      risk: item.risk,
       satisfied: isSatisfied(item.check, item.key, fwKey, ctx),
       automatable: item.check.type !== 'unavailable',
     }));

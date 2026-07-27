@@ -61,6 +61,30 @@ function riskDetail(fw) {
   return 'Not enough history yet to predict a trend.';
 }
 
+// Plain-language onboarding for a company with zero documents/vendors/evidence — a genuine
+// first-timer, not just someone who hasn't logged in recently. Deterministic, built from real
+// profile fields and the curated checklist `why` text, same reasoning as composeInsight on the
+// server: a coach message that might be inconsistent between two views (an LLM call) is worse
+// than one that's always the same and always grounded in the actual profile.
+function buildCoachIntro(company, data) {
+  const facts = [];
+  if (company.processes_pii) facts.push('you handle personal data (PII)');
+  if (company.processes_eu_data) facts.push('you process EU resident data');
+  if (company.ai_systems_used?.length) facts.push(`you use AI systems (${company.ai_systems_used[0]})`);
+  if (company.cloud_providers?.length) facts.push(`you host on ${company.cloud_providers.join(', ')}`);
+
+  const factsLine = facts.length
+    ? `Based on your profile: ${facts.join('; ')}.`
+    : "Your profile doesn't have data-handling details filled in yet — the more accurate it is (in Settings), the more specific this gets.";
+
+  const top = data.nextActions?.[0];
+  const firstStep = top
+    ? `Start with "${top.label}"${top.why ? ` — ${top.why}` : ''}`
+    : "You're already past the very first steps — check Today's priorities below for what's next.";
+
+  return { factsLine, firstStep };
+}
+
 function greetingWord() {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -151,9 +175,21 @@ export default function ComplianceGapAnalysis({
   const impact = topAction ? impactTier(topAction.totalLift) : null;
 
   const firstName = userName ? userName.split(' ')[0] : '';
+  const isNewCompany = data.documentsReady === 0 && data.vendorCount === 0 && (data.evidenceCount || 0) === 0;
+  const coachIntro = isNewCompany ? buildCoachIntro(company, data) : null;
 
   return (
     <div>
+      {coachIntro && (
+        <div className="panel" style={{ marginBottom: 14, borderColor: 'var(--accent)' }}>
+          <h3 style={{ marginTop: 0 }}>👋 New here? Let's get {company.name} compliance-ready.</h3>
+          <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+            <p style={{ margin: '0 0 8px' }}>{coachIntro.factsLine}</p>
+            <p style={{ margin: 0 }}>{coachIntro.firstStep}</p>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
         <div>
           <h2 className="section-heading" style={{ marginBottom: 4 }}>
@@ -456,10 +492,18 @@ export default function ComplianceGapAnalysis({
               {expanded[fw.key] && (
                 <ul style={{ listStyle: 'none', padding: 0, marginTop: 10 }}>
                   {fw.items.map((item) => (
-                    <li key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13 }}>
-                      <span style={{ color: item.satisfied ? 'var(--accent)' : 'var(--muted)' }}>{item.satisfied ? '✓' : '○'}</span>
-                      <span style={{ color: item.satisfied ? 'var(--text)' : 'var(--muted)', flex: 1 }}>{item.label}</span>
-                      {!item.satisfied && !item.automatable && <span className="meta" style={{ fontSize: 10 }}>not yet supported</span>}
+                    <li key={item.key} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                        <span style={{ color: item.satisfied ? 'var(--accent)' : 'var(--muted)' }}>{item.satisfied ? '✓' : '○'}</span>
+                        <span style={{ color: item.satisfied ? 'var(--text)' : 'var(--muted)', flex: 1 }}>{item.label}</span>
+                        {!item.satisfied && !item.automatable && <span className="meta" style={{ fontSize: 10 }}>not yet supported</span>}
+                      </div>
+                      {!item.satisfied && item.why && (
+                        <div className="meta" style={{ fontSize: 11.5, marginLeft: 22, marginTop: 3, lineHeight: 1.4 }}>
+                          <strong style={{ color: 'var(--text)' }}>Why it matters:</strong> {item.why}
+                          {item.risk && <><br /><strong style={{ color: 'var(--danger)' }}>If skipped:</strong> {item.risk}</>}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

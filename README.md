@@ -408,6 +408,29 @@ cases above, then checked against the one real company's actual history — whic
 back "stalled" on all four frameworks, since none had moved in the prior 24+ hours. Shown as a
 "Risk prediction" panel on the Dashboard, between Framework progress and Risk distribution.
 
+## AI Compliance Coach
+
+Vanta/Drata/Secureframe assume the buyer already knows what compliance means — their checklists
+say "Enable MFA" with no context. A large real segment doesn't have that literacy: a first-time
+founder who just got their first enterprise customer's security questionnaire and has never heard
+of a DPIA. This is the deliberate wedge against that assumption, in two pieces.
+
+**Every checklist item now has a plain-English "why it matters" and "if skipped" line**
+(`server/src/templates/gapChecklist.js`) — 30 items across the 4 frameworks, hand-written once
+rather than generated per view. Same reasoning as `composeInsight()`: an LLM call here could phrase
+the same control differently every time someone looks at it, or invent a plausible-sounding but
+wrong consequence; curated text is free, instant, and always accurate. Shown only for unsatisfied
+items in the "Framework detail" checklist expansion — satisfied items don't need convincing.
+
+**A "New here?" coach banner** (`buildCoachIntro()` in `client/src/pages/ComplianceGapAnalysis.jsx`)
+replaces the score/point-lift framing with a plain-language one for a genuinely new company (zero
+documents, vendors, and evidence — not just someone who hasn't logged in recently): it restates
+the real profile facts that actually drive obligations ("you process EU resident data," "you use
+AI systems") and recommends one first step, quoting that item's own `why` text instead of
+"+17pt impact." Deterministic and profile-grounded, not AI-generated, for the same reason as above.
+Next Best Action's top pick now carries its `why` text end-to-end (`computeNextActions()` in
+`server/src/services/gapAnalysis.js`) so the banner can quote it directly.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
