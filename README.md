@@ -451,6 +451,41 @@ the real baseline exactly (a no-op simulation must be provably identical to real
 a real multi-item scenario against Qualifix Technologies' actual data (both via a standalone script
 and the live endpoint) before wiring up the UI.
 
+## Product polish pass
+
+A round of direct user feedback: keep the product hard-coded/deterministic wherever possible
+(see "AI usage" below), let a company brand its own workspace, stop the Settings page from
+feeling like a job application, stop repeating the same cloud-processing warning on every page,
+and make the Documents list usable once it has more than a handful of entries. Four concrete
+changes:
+
+**Company logo.** `POST /api/companies/:id/logo` (multer memory storage, PNG/JPG/WEBP, 500KB
+max) stores the image inline as a `data:` URI on the `companies.logo_data_url` column — no
+file-serving route was added since this app doesn't otherwise serve raw files back (evidence
+uploads are processed, never returned), and a company logo is small enough that base64-in-Postgres
+is simpler than standing up new infrastructure for it. Shown in the sidebar company switcher and
+on Dashboard company cards, with a plain initial-letter fallback when there's no logo.
+
+**Settings redesign.** The single flat form (`client/src/pages/Settings.jsx`) is now grouped into
+labeled sections (Basic information / Data & compliance signals / Tools & AI systems / Notes)
+under the logo block, plus a separate "Your account" card for the display-name field — which
+already existed on the backend (`PATCH /api/auth/me`) but had no UI anywhere to use it until now.
+
+**Cloud-processing disclosure, redesigned not removed.** The old pattern repeated a full-width
+colored banner ("☁️ Company profile data is sent to Groq's cloud API…") on every page with a
+provider dropdown — Evidence, Chat, Documents, Vendors. The disclosure itself stays, because
+honest third-party-processing disclosure is core to this app's positioning, not decoration — but
+it's now a compact inline badge (`client/src/components/ProviderNotice.jsx`) next to the provider
+select, with the full text one hover away via the native `title` tooltip. A one-time explanation
+of what "cloud" vs "local" actually means was added as a required checkbox on the signup form
+instead, so a new user reads the real explanation once rather than a decorative badge forever.
+
+**Documents search + pagination.** The Documents tab was inline in `CompanyDetail.jsx`; pulled
+out into its own `client/src/pages/Documents.jsx` (matching the pattern every other tab already
+follows) specifically to add a search box (filters by title or framework, client-side) and
+pagination (6 per page) — the flat unbounded grid stopped being usable once a company has more
+than a screenful of generated documents.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)
@@ -465,6 +500,12 @@ and the live endpoint) before wiring up the UI.
   branch protection/secret scanning would need the broader `repo` OAuth scope (deliberate tradeoff)
 - Gap analysis checklist items are curated, not a full ISO 27001 Annex A (93 controls) or
   GDPR article-by-article mapping — it's honest about what it checks, not exhaustive
+- **AI usage isn't fully audited yet.** The stated goal is deterministic/hard-coded logic
+  everywhere an LLM call isn't genuinely necessary — most of this app already follows that
+  (scoring, alerts, predictions, and simulation are all plain functions), but vendor detection
+  (`VendorRegister.jsx` → `POST /vendors/detect`) still calls an LLM to turn already-structured
+  `cloud_providers`/`tools_used` profile fields into vendor rows, which is a plausible candidate
+  to make rule-based instead — flagged, not yet changed
 - Trend deltas need 7+ days of real usage history before they appear — by design, not a bug
 - Business change detection only watches vendor/tool/AI-system/data-type/PII fields — editing name,
   industry, size, country, or notes never raises an alert, since those don't map to a specific

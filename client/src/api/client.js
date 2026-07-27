@@ -42,6 +42,20 @@ export const api = {
   updateCompany: (id, patch) => request(`/companies/${id}`, { method: 'PATCH', body: patch }),
   listCompanyAlerts: (id) => request(`/companies/${id}/alerts`),
   dismissAlert: (companyId, alertId) => request(`/companies/${companyId}/alerts/${alertId}/dismiss`, { method: 'POST' }),
+  async uploadCompanyLogo(companyId, file) {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const token = getToken();
+    const res = await fetch(`/api/companies/${companyId}/logo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  },
+  removeCompanyLogo: (companyId) => request(`/companies/${companyId}/logo`, { method: 'DELETE' }),
 
   getGapAnalysis: (companyId) => request(`/compliance/gap-analysis?companyId=${companyId}`),
   getEvidenceTargets: () => request('/compliance/evidence-targets'),

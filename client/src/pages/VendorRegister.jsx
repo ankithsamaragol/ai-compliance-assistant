@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
+import ProviderNotice from '../components/ProviderNotice';
 
 const TIER_LABEL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
 
@@ -51,6 +52,7 @@ export default function VendorRegister({ company, providers, provider, setProvid
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <ProviderNotice provider={currentProvider} />
           <select value={provider} onChange={(e) => setProvider(e.target.value)} style={{ width: 'auto' }}>
             {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
           </select>
@@ -60,11 +62,6 @@ export default function VendorRegister({ company, providers, provider, setProvid
         </div>
       </div>
 
-      {currentProvider?.dataNotice && (
-        <div className={`data-notice ${currentProvider.local ? 'data-notice-local' : 'data-notice-cloud'}`} style={{ marginTop: 12 }}>
-          {currentProvider.local ? '🔒' : '☁️'} {currentProvider.dataNotice}
-        </div>
-      )}
       {error && <div className="error">{error}</div>}
 
       {vendors.length === 0 ? (

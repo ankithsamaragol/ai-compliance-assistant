@@ -1,10 +1,25 @@
 const express = require('express');
+const multer = require('multer');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { detectProfileChanges } = require('../services/profileChangeDetection');
 
 const router = express.Router();
 router.use(requireAuth);
+
+// Logos are small and stored inline as a data: URI on the row — no file-serving route exists in
+// this app (evidence files are processed, never served back raw), so this avoids standing up a
+// new auth-gated static route just for a handful of tiny images. Raster formats only: an SVG data
+// URI rendered via <img> doesn't execute embedded scripts per spec, but there's no upside to
+// accepting the riskier format when PNG/JPG/WEBP cover every real logo a company would upload.
+const LOGO_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 },
+  fileFilter(req, file, cb) {
+    cb(null, LOGO_MIME_TYPES.has(file.mimetype));
+  },
+});
 
 const EDITABLE_FIELDS = [
   'name', 'industry', 'size_band', 'country', 'contact_email',
@@ -125,6 +140,31 @@ router.post('/:id/alerts/:alertId/dismiss', async (req, res, next) => {
     );
     if (!rows[0]) return res.status(404).json({ error: 'Alert not found' });
     res.status(204).send();
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/logo', logoUpload.single('logo'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded, or file type not allowed (PNG/JPG/WEBP, 500KB max)' });
+
+    const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    const { rows } = await pool.query(
+      `UPDATE companies SET logo_data_url = $1, updated_at = now() WHERE id = $2 AND account_id = $3 RETURNING *`,
+      [dataUrl, req.params.id, req.account.id],
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Company not found' });
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/logo', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE companies SET logo_data_url = NULL, updated_at = now() WHERE id = $1 AND account_id = $2 RETURNING *`,
+      [req.params.id, req.account.id],
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Company not found' });
+    res.json(rows[0]);
   } catch (err) { next(err); }
 });
 

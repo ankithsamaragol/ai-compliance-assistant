@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
+import ProviderNotice from '../components/ProviderNotice';
 
 const STATUS_LABEL = { analyzed: 'Analyzed', pending: 'Analyzing…', failed: 'Analysis failed', unsupported: 'Not AI-readable' };
 const STATUS_CLASS = { analyzed: 'status-ready', pending: 'status-generating', failed: 'status-failed', unsupported: 'status-unsupported' };
@@ -167,6 +168,7 @@ export default function Evidence({ company, providers, provider, setProvider, on
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <ProviderNotice provider={currentProvider} />
           <select value={provider} onChange={(e) => setProvider(e.target.value)} style={{ width: 'auto' }}>
             {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
           </select>
@@ -177,11 +179,6 @@ export default function Evidence({ company, providers, provider, setProvider, on
         </div>
       </div>
 
-      {currentProvider?.dataNotice && (
-        <div className={`data-notice ${currentProvider.local ? 'data-notice-local' : 'data-notice-cloud'}`} style={{ marginTop: 12 }}>
-          {currentProvider.local ? '🔒' : '☁️'} {currentProvider.dataNotice}
-        </div>
-      )}
       {error && <div className="error">{error}</div>}
 
       {items.length === 0 ? (

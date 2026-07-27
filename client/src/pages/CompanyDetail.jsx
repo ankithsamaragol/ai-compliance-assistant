@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { api, getToken } from '../api/client';
+import { api } from '../api/client';
 import VendorRegister from './VendorRegister';
 import Evidence from './Evidence';
 import Timeline from './Timeline';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 import ComplianceChat from './ComplianceChat';
 import Settings from './Settings';
+import Documents from './Documents';
 import {
   IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding, IconBook,
   IconShieldCheck, IconClipboard, IconCheckSquare, IconFileText, IconClock, IconSettings,
@@ -27,7 +28,7 @@ const NAV = [
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: true },
 ];
 
-export default function CompanyDetail({ company, onBack, userName, userEmail, onLogout, onCompanyUpdated }) {
+export default function CompanyDetail({ company, onBack, userName, userEmail, onLogout, onCompanyUpdated, onAccountUpdated }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -37,7 +38,6 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
   const [framework, setFramework] = useState('');
   const [docType, setDocType] = useState('');
   const [provider, setProvider] = useState('');
-  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
   const [activeDoc, setActiveDoc] = useState(null);
   const [gapRefreshKey, setGapRefreshKey] = useState(0);
@@ -67,8 +67,6 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
     api.listDocuments(company.id).then(setDocuments).catch((err) => setError(err.message));
   }
 
-  const currentFrameworkDocTypes = catalog.find((f) => f.key === framework)?.docTypes || [];
-  const currentProvider = providers.find((p) => p.key === provider);
   const realDocuments = documents.filter((d) => d.framework !== 'executive_report');
 
   function jumpToGenerate(fw, dt) {
@@ -79,40 +77,6 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
 
   function jumpToVendors() {
     setActiveTab('vendors');
-  }
-
-  async function generate() {
-    setError('');
-    setGenerating(true);
-    try {
-      const doc = await api.generateDocument(company.id, framework, docType, provider);
-      setDocuments((prev) => [doc, ...prev]);
-      setActiveDoc(doc);
-      setGapRefreshKey((k) => k + 1);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  async function openDoc(docSummary) {
-    const doc = await api.getDocument(docSummary.id);
-    setActiveDoc(doc);
-  }
-
-  async function download(doc) {
-    const res = await fetch(api.exportDocumentUrl(doc.id), {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
-    if (!res.ok) { setError('Export failed'); return; }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${doc.title.replace(/[^a-z0-9]+/gi, '_')}.docx`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   return (
@@ -127,7 +91,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
         </div>
 
         <div className="workspace-company-switch">
-          <IconBuilding size={14} />
+          {company.logo_data_url ? <img className="company-logo-sm" src={company.logo_data_url} alt="" /> : <IconBuilding size={14} />}
           <span>{company.name}</span>
           <span className="switch-link" onClick={onBack}>Switch</span>
         </div>
@@ -171,6 +135,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
       </aside>
 
       <main className="workspace-main">
+          {error && <div className="error" style={{ marginBottom: 12 }}>{error}</div>}
           {activeTab === 'overview' && (
             <ComplianceGapAnalysis
               company={company}
@@ -191,74 +156,22 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
           )}
 
           {activeTab === 'documents' && (
-            <>
-              <div className="panel">
-                <h3 style={{ marginTop: 0 }}>Generate a document</h3>
-                <div className="grid">
-                  <div>
-                    <label>Framework</label>
-                    <select value={framework} onChange={(e) => {
-                      setFramework(e.target.value);
-                      const dt = catalog.find((f) => f.key === e.target.value)?.docTypes[0]?.key || '';
-                      setDocType(dt);
-                    }}>
-                      {catalog.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label>Document type</label>
-                    <select value={docType} onChange={(e) => setDocType(e.target.value)}>
-                      {currentFrameworkDocTypes.map((dt) => <option key={dt.key} value={dt.key}>{dt.title}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label>Generator</label>
-                    <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-                      {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-                {currentProvider?.dataNotice && (
-                  <div className={`data-notice ${currentProvider.local ? 'data-notice-local' : 'data-notice-cloud'}`}>
-                    {currentProvider.local ? '🔒' : '☁️'} {currentProvider.dataNotice}
-                  </div>
-                )}
-                {error && <div className="error">{error}</div>}
-                <button onClick={generate} disabled={generating || !framework || !docType}>
-                  {generating ? 'Generating…' : 'Generate document'}
-                </button>
-              </div>
-
-              <div className="panel">
-                <h3 style={{ marginTop: 0 }}>Documents</h3>
-                <div className="doc-grid">
-                  {documents.map((doc) => (
-                    <div className="doc-card" key={doc.id}>
-                      <span className="framework">{doc.framework.replace('_', ' ')}</span>
-                      <span className="title">{doc.title}</span>
-                      <span className={`status-badge status-${doc.status}`}>{doc.status}</span>
-                      {doc.provider && <span className="meta" style={{ fontSize: 11 }}>via {doc.model || doc.provider}</span>}
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {doc.status === 'ready' && (
-                          <>
-                            <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={() => openDoc(doc)}>Preview</button>
-                            <button style={{ marginTop: 0, fontSize: 12 }} onClick={() => download(doc)}>Download .docx</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {documents.length === 0 && <div className="meta">No documents generated yet.</div>}
-                </div>
-              </div>
-
-              {activeDoc?.content_md && (
-                <div className="panel">
-                  <h3 style={{ marginTop: 0 }}>{activeDoc.title}</h3>
-                  <div className="doc-preview">{activeDoc.content_md}</div>
-                </div>
-              )}
-            </>
+            <Documents
+              company={company}
+              catalog={catalog}
+              providers={providers}
+              provider={provider}
+              setProvider={setProvider}
+              framework={framework}
+              setFramework={setFramework}
+              docType={docType}
+              setDocType={setDocType}
+              documents={documents}
+              setDocuments={setDocuments}
+              activeDoc={activeDoc}
+              setActiveDoc={setActiveDoc}
+              onGapRefresh={() => setGapRefreshKey((k) => k + 1)}
+            />
           )}
 
           {activeTab === 'vendors' && providers.length > 0 && (
@@ -297,7 +210,9 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
           {activeTab === 'settings' && (
             <Settings
               company={company}
+              userName={userName}
               onCompanyUpdated={onCompanyUpdated}
+              onAccountUpdated={onAccountUpdated}
               onAlertsCreated={() => setGapRefreshKey((k) => k + 1)}
             />
           )}

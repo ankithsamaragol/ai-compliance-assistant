@@ -7,6 +7,7 @@ export default function Auth({ onAuthed }) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [dataAck, setDataAck] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -45,6 +46,18 @@ export default function Auth({ onAuthed }) {
           <>
             <label>Invite code</label>
             <input value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} required />
+            <label style={{ marginTop: 16 }}>
+              <input
+                type="checkbox"
+                style={{ width: 'auto', marginRight: 8 }}
+                checked={dataAck}
+                onChange={(e) => setDataAck(e.target.checked)}
+                required
+              />
+              I understand: choosing a cloud AI provider (e.g. Groq) sends my company profile data
+              to that third party to generate results. Choosing a local provider (Ollama) keeps
+              everything on this machine. I can switch providers per action at any time.
+            </label>
           </>
         )}
         {error && <div className="error">{error}</div>}

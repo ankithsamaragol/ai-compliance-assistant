@@ -278,6 +278,7 @@ export default function Dashboard({ onOpenCompany }) {
           const gap = gapByCompany[c.id];
           return (
             <div className="company-card" key={c.id} onClick={() => onOpenCompany(c)}>
+              {c.logo_data_url && <img className="company-card-logo" src={c.logo_data_url} alt="" />}
               <div className="company-card-name">{c.name}</div>
               <div className="meta">{c.industry}</div>
               <div className="meta">{c.size_band} employees · {c.country}</div>

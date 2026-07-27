@@ -99,6 +99,7 @@ export default function App() {
             onLogout={logout}
             onBack={() => setOpenCompany(null)}
             onCompanyUpdated={setOpenCompany}
+            onAccountUpdated={(account) => setUserName(account?.name || '')}
           />
         )}
       </div>

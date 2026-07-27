@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS companies (
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS contact_email TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS tools_used TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS ai_systems_used TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_data_url TEXT; -- small logo, stored inline as a data: URI (no file-serving route exists yet)
 
 CREATE TABLE IF NOT EXISTS documents (
   id            SERIAL PRIMARY KEY,
