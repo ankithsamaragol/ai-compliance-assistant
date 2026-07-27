@@ -431,6 +431,26 @@ AI systems") and recommends one first step, quoting that item's own `why` text i
 Next Best Action's top pick now carries its `why` text end-to-end (`computeNextActions()` in
 `server/src/services/gapAnalysis.js`) so the banner can quote it directly.
 
+## Compliance Simulation
+
+Vanta/Drata/Secureframe are monitoring tools — they tell you what already happened. This is the
+decision-support counterpart: "what if I did these three things" *before* you act, not a change
+alert after. Tick "Simulate" on any unmet checklist item (in the same Framework detail checklist
+the Coach's why-text lives in) and a "Simulation" panel shows the projected score change — nothing
+is generated, added, or saved; it's a pure sandbox over the real current data.
+
+**Architecturally this cost almost nothing to add**, which is exactly why it was the right thing to
+build next: `computeGapAnalysis()` already separated a DB-fetch phase from a pure scoring phase
+(`fetchGapContext()` / `scoreFromCtx()`), so `simulateGapAnalysis()` fetches the real data once and
+scores it twice — once as-is, once with the requested items force-satisfied via the same
+`isSatisfied()` check every other feature already trusts (`server/src/services/gapAnalysis.js`).
+No new data model, no new subsystem, and the existing checklist/why-text/cross-framework-hints
+logic is reused exactly as-is. `POST /api/compliance/simulate` takes `{ companyId, itemKeys }` and
+returns baseline + simulated scores per framework; verified an empty `itemKeys` array reproduces
+the real baseline exactly (a no-op simulation must be provably identical to reality), then verified
+a real multi-item scenario against Qualifix Technologies' actual data (both via a standalone script
+and the live endpoint) before wiring up the UI.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)

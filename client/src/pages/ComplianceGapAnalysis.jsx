@@ -123,6 +123,8 @@ export default function ComplianceGapAnalysis({
   const [reportError, setReportError] = useState('');
   const [expanded, setExpanded] = useState({});
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [simKeys, setSimKeys] = useState(() => new Set());
+  const [simResult, setSimResult] = useState(null);
 
   function load() {
     api.getGapAnalysis(company.id).then(setData).catch((err) => setError(err.message));
@@ -132,6 +134,21 @@ export default function ComplianceGapAnalysis({
   }
 
   useEffect(load, [company.id, refreshKey]);
+
+  useEffect(() => {
+    if (simKeys.size === 0) { setSimResult(null); return; }
+    api.simulateGapAnalysis(company.id, Array.from(simKeys)).then(setSimResult).catch(() => {});
+  }, [company.id, simKeys]);
+
+  function toggleSimKey(frameworkKey, itemKey) {
+    const fullKey = `${frameworkKey}:${itemKey}`;
+    setSimKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(fullKey)) next.delete(fullKey);
+      else next.add(fullKey);
+      return next;
+    });
+  }
 
   async function dismissAlert(alertId) {
     setAlerts((prev) => prev.filter((a) => a.id !== alertId));
@@ -472,6 +489,47 @@ export default function ComplianceGapAnalysis({
       )}
 
       <div className="panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Simulation</h3>
+            <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>
+              Tick "Simulate" on any unmet item below to see the score impact — nothing is saved,
+              this is a sandbox over your real current data.
+            </div>
+          </div>
+          {simKeys.size > 0 && (
+            <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={() => setSimKeys(new Set())}>
+              Clear ({simKeys.size})
+            </button>
+          )}
+        </div>
+        {simResult && (
+          <div style={{ marginTop: 12 }}>
+            <div className="priority-item">
+              <div className="priority-item-body">
+                <div className="priority-item-title">Overall readiness</div>
+                <div className="priority-item-meta">{simResult.baseline.overallScore}% → {simResult.simulated.overallScore}%</div>
+              </div>
+              <span className="priority-item-impact">+{simResult.simulated.overallScore - simResult.baseline.overallScore}pt</span>
+            </div>
+            {simResult.simulated.frameworks.map((fw, i) => {
+              const before = simResult.baseline.frameworks[i];
+              if (fw.score === before.score) return null;
+              return (
+                <div key={fw.key} className="priority-item">
+                  <div className="priority-item-body">
+                    <div className="priority-item-title">{fw.label}</div>
+                    <div className="priority-item-meta">{before.score}% → {fw.score}%</div>
+                  </div>
+                  <span className="priority-item-impact">+{fw.score - before.score}pt</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="panel">
         <h3 style={{ marginTop: 0 }}>Framework detail</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
           {data.frameworks.map((fw) => (
@@ -497,6 +555,17 @@ export default function ComplianceGapAnalysis({
                         <span style={{ color: item.satisfied ? 'var(--accent)' : 'var(--muted)' }}>{item.satisfied ? '✓' : '○'}</span>
                         <span style={{ color: item.satisfied ? 'var(--text)' : 'var(--muted)', flex: 1 }}>{item.label}</span>
                         {!item.satisfied && !item.automatable && <span className="meta" style={{ fontSize: 10 }}>not yet supported</span>}
+                        {!item.satisfied && item.automatable && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 4, margin: 0, fontSize: 11, fontWeight: 400, color: 'var(--muted)', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              style={{ width: 'auto' }}
+                              checked={simKeys.has(`${fw.key}:${item.key}`)}
+                              onChange={() => toggleSimKey(fw.key, item.key)}
+                            />
+                            Simulate
+                          </label>
+                        )}
                       </div>
                       {!item.satisfied && item.why && (
                         <div className="meta" style={{ fontSize: 11.5, marginLeft: 22, marginTop: 3, lineHeight: 1.4 }}>

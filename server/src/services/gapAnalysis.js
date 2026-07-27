@@ -3,6 +3,9 @@ const { GAP_CHECKLIST } = require('../templates/gapChecklist');
 const { computeCrossFrameworkHints } = require('../templates/controlMapping');
 
 function isSatisfied(check, itemKey, frameworkKey, ctx) {
+  // Simulation override: "what if this item were done" always wins, regardless of real data —
+  // this is the entire mechanism the simulator needs, no separate scoring path required.
+  if (ctx.simulateKeys?.has(`${frameworkKey}:${itemKey}`)) return true;
   if (check.type === 'document') {
     return ctx.readyDocs.has(`${check.framework}:${check.docType}`);
   }
@@ -52,28 +55,10 @@ function computeNextActions(frameworks, checklistByKey) {
     .slice(0, 3);
 }
 
-async function computeGapAnalysis(companyId) {
-  const [{ rows: docs }, { rows: vendorRows }, { rows: evidenceRows }] = await Promise.all([
-    pool.query(`SELECT framework, doc_type FROM documents WHERE company_id = $1 AND status = 'ready' AND framework != 'executive_report'`, [companyId]),
-    pool.query(`SELECT risk_tier FROM vendors WHERE company_id = $1`, [companyId]),
-    pool.query(`SELECT mapped_controls FROM evidence WHERE company_id = $1 AND status = 'analyzed'`, [companyId]),
-  ]);
-
-  // Only high/medium-confidence AI mappings close a gap — a low-confidence guess shouldn't
-  // silently inflate the score. Low-confidence matches still show up in the evidence list.
-  const evidenceKeys = new Set();
-  for (const row of evidenceRows) {
-    for (const m of row.mapped_controls || []) {
-      if (m.confidence === 'high' || m.confidence === 'medium') evidenceKeys.add(`${m.framework}:${m.key}`);
-    }
-  }
-
-  const ctx = {
-    readyDocs: new Set(docs.map((d) => `${d.framework}:${d.doc_type}`)),
-    vendorCount: vendorRows.length,
-    evidenceKeys,
-  };
-
+// Pure scoring over an already-fetched context — separated from the DB reads specifically so the
+// simulator can score the same real data twice (once as-is, once with a hypothetical override)
+// without a second round trip to the database.
+function scoreFromCtx(ctx) {
   const frameworks = Object.entries(GAP_CHECKLIST).map(([fwKey, def]) => {
     const items = def.items.map((item) => ({
       key: item.key,
@@ -94,20 +79,62 @@ async function computeGapAnalysis(companyId) {
     };
   });
 
-  const checklistByKey = GAP_CHECKLIST;
-  const nextActions = computeNextActions(frameworks, checklistByKey);
+  const nextActions = computeNextActions(frameworks, GAP_CHECKLIST);
   const crossFrameworkHints = computeCrossFrameworkHints(frameworks);
-
-  const openRisks = vendorRows.filter((v) => v.risk_tier === 'critical' || v.risk_tier === 'high').length;
   const overallScore = frameworks.length
     ? Math.round(frameworks.reduce((sum, f) => sum + f.score, 0) / frameworks.length)
     : 0;
 
+  return { frameworks, nextActions, crossFrameworkHints, overallScore };
+}
+
+async function fetchGapContext(companyId) {
+  const [{ rows: docs }, { rows: vendorRows }, { rows: evidenceRows }] = await Promise.all([
+    pool.query(`SELECT framework, doc_type FROM documents WHERE company_id = $1 AND status = 'ready' AND framework != 'executive_report'`, [companyId]),
+    pool.query(`SELECT risk_tier FROM vendors WHERE company_id = $1`, [companyId]),
+    pool.query(`SELECT mapped_controls FROM evidence WHERE company_id = $1 AND status = 'analyzed'`, [companyId]),
+  ]);
+
+  // Only high/medium-confidence AI mappings close a gap — a low-confidence guess shouldn't
+  // silently inflate the score. Low-confidence matches still show up in the evidence list.
+  const evidenceKeys = new Set();
+  for (const row of evidenceRows) {
+    for (const m of row.mapped_controls || []) {
+      if (m.confidence === 'high' || m.confidence === 'medium') evidenceKeys.add(`${m.framework}:${m.key}`);
+    }
+  }
+
   return {
-    frameworks, nextActions, crossFrameworkHints, openRisks,
-    documentsReady: docs.length, vendorCount: ctx.vendorCount,
-    evidenceCount: evidenceRows.length, overallScore,
+    readyDocs: new Set(docs.map((d) => `${d.framework}:${d.doc_type}`)),
+    vendorCount: vendorRows.length,
+    evidenceKeys,
+    docs, vendorRows, evidenceRows,
   };
 }
 
-module.exports = { computeGapAnalysis };
+async function computeGapAnalysis(companyId) {
+  const ctx = await fetchGapContext(companyId);
+  const scored = scoreFromCtx(ctx);
+  const openRisks = ctx.vendorRows.filter((v) => v.risk_tier === 'critical' || v.risk_tier === 'high').length;
+
+  return {
+    ...scored, openRisks,
+    documentsReady: ctx.docs.length, vendorCount: ctx.vendorCount, evidenceCount: ctx.evidenceRows.length,
+  };
+}
+
+// "What if these items were already done?" — baseline and simulated scores from the exact same
+// fetched data, differing only by which keys are forced satisfied. No document is generated, no
+// vendor added, nothing is persisted; it's purely a projection over the real current state.
+async function simulateGapAnalysis(companyId, itemKeys) {
+  const ctx = await fetchGapContext(companyId);
+  const baseline = scoreFromCtx(ctx);
+  const simulated = scoreFromCtx({ ...ctx, simulateKeys: new Set(itemKeys) });
+
+  return {
+    baseline: { overallScore: baseline.overallScore, frameworks: baseline.frameworks.map(({ key, label, score }) => ({ key, label, score })) },
+    simulated: { overallScore: simulated.overallScore, frameworks: simulated.frameworks.map(({ key, label, score }) => ({ key, label, score })) },
+  };
+}
+
+module.exports = { computeGapAnalysis, simulateGapAnalysis };

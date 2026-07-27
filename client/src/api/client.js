@@ -47,6 +47,7 @@ export const api = {
   getEvidenceTargets: () => request('/compliance/evidence-targets'),
   getTimeline: (companyId) => request(`/compliance/timeline?companyId=${companyId}`),
   getRiskPrediction: (companyId) => request(`/compliance/risk-prediction?companyId=${companyId}`),
+  simulateGapAnalysis: (companyId, itemKeys) => request('/compliance/simulate', { method: 'POST', body: { companyId, itemKeys } }),
 
   listConnectors: (companyId) => request(`/connectors?companyId=${companyId}`),
   startGithubConnect: (companyId) => request(`/connectors/github/start?companyId=${companyId}`),

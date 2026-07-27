@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
-const { computeGapAnalysis } = require('../services/gapAnalysis');
+const { computeGapAnalysis, simulateGapAnalysis } = require('../services/gapAnalysis');
 const { evidenceTargets } = require('../services/evidenceIntelligence');
 const { getWeeklyTrend, getTimeline, getLatestInsight } = require('../services/scoreHistory');
 const { computeRiskPrediction } = require('../services/riskPrediction');
@@ -42,6 +42,19 @@ router.get('/gap-analysis', async (req, res, next) => {
     result.latestInsight = latestInsight;
 
     res.json(result);
+  } catch (err) { next(err); }
+});
+
+router.post('/simulate', async (req, res, next) => {
+  try {
+    const { companyId, itemKeys } = req.body;
+    if (!companyId) return res.status(400).json({ error: 'companyId is required' });
+    if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!Array.isArray(itemKeys) || itemKeys.some((k) => typeof k !== 'string')) {
+      return res.status(400).json({ error: 'itemKeys must be an array of strings' });
+    }
+
+    res.json(await simulateGapAnalysis(companyId, itemKeys.slice(0, 50)));
   } catch (err) { next(err); }
 });
 
