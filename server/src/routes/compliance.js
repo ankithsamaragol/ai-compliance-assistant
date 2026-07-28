@@ -5,6 +5,7 @@ const { computeGapAnalysis, simulateGapAnalysis } = require('../services/gapAnal
 const { evidenceTargets } = require('../services/evidenceIntelligence');
 const { getWeeklyTrend, getTimeline, getLatestInsight } = require('../services/scoreHistory');
 const { computeRiskPrediction } = require('../services/riskPrediction');
+const { computeStrategy } = require('../services/strategyEngine');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -69,6 +70,23 @@ router.get('/risk-prediction', async (req, res, next) => {
       [companyId],
     );
     res.json(computeRiskPrediction(rows));
+  } catch (err) { next(err); }
+});
+
+router.get('/strategy', async (req, res, next) => {
+  try {
+    const { companyId } = req.query;
+    if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
+    if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+
+    const [gap, { rows }] = await Promise.all([
+      computeGapAnalysis(companyId),
+      pool.query(`SELECT created_at, framework_scores FROM score_snapshots WHERE company_id = $1 ORDER BY created_at`, [companyId]),
+    ]);
+    const risk = computeRiskPrediction(rows);
+    const riskByFramework = Object.fromEntries(risk.frameworks.map((f) => [f.key, f]));
+
+    res.json({ frameworks: computeStrategy(gap.frameworks, riskByFramework) });
   } catch (err) { next(err); }
 });
 

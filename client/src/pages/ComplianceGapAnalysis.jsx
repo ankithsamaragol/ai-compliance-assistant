@@ -119,6 +119,7 @@ export default function ComplianceGapAnalysis({
   const [vendors, setVendors] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [riskPrediction, setRiskPrediction] = useState(null);
+  const [strategy, setStrategy] = useState(null);
   const [error, setError] = useState('');
   const [reportError, setReportError] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -131,6 +132,7 @@ export default function ComplianceGapAnalysis({
     api.listVendors(company.id).then(setVendors).catch(() => {});
     api.listCompanyAlerts(company.id).then(setAlerts).catch(() => {});
     api.getRiskPrediction(company.id).then(setRiskPrediction).catch(() => {});
+    api.getStrategy(company.id).then(setStrategy).catch(() => {});
   }
 
   useEffect(load, [company.id, refreshKey]);
@@ -422,6 +424,47 @@ export default function ComplianceGapAnalysis({
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {strategy?.frameworks?.length > 0 && (
+        <div className="panel">
+          <h3 style={{ marginTop: 0 }}>Certification roadmap</h3>
+          <div className="meta" style={{ fontSize: 12, marginBottom: 8 }}>
+            The full ordered sequence of remaining steps to cross the 75% "on track" line for each
+            framework — not just the single next best action. Timing shown only when there's enough
+            real history to trust a pace; otherwise it's the sequence alone.
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            {strategy.frameworks.map((fw) => (
+              <div key={fw.key} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontWeight: 600 }}>{fw.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(fw.currentScore) }}>{fw.currentScore}%</span>
+                </div>
+                {fw.status === 'at_target' ? (
+                  <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>Already at or above the 75% target.</div>
+                ) : (
+                  <>
+                    <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>
+                      {fw.weeksEstimate
+                        ? `~${fw.weeksEstimate} week${fw.weeksEstimate === 1 ? '' : 's'} at your current pace`
+                        : 'Not enough history yet to estimate timing'}
+                      {fw.status === 'capped' && ' — some remaining items aren\'t automatable yet, target may not be fully reachable from here'}
+                    </div>
+                    <ol style={{ margin: '8px 0 0', paddingLeft: 20 }}>
+                      {fw.steps.map((step) => (
+                        <li key={step.key} style={{ fontSize: 12.5, marginBottom: 6 }}>
+                          <span style={{ fontWeight: 600 }}>{step.label}</span>
+                          <span className="meta" style={{ marginLeft: 6 }}>→ {step.scoreAfter}%</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

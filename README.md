@@ -451,6 +451,38 @@ the real baseline exactly (a no-op simulation must be provably identical to real
 a real multi-item scenario against Qualifix Technologies' actual data (both via a standalone script
 and the live endpoint) before wiring up the UI.
 
+## Compliance Strategy Engine
+
+Next Best Action ranks a single next step. Risk Prediction flags a framework as stalled or on
+pace. Neither ever answered the vision doc's actual "Strategy Engine" ask: a real multi-step
+certification roadmap, not a single ranked action. This is that roadmap — `GET
+/api/compliance/strategy` returns, per framework, the full ordered sequence of remaining steps to
+cross the same 75% "on track" line Risk Prediction already uses, with the running score shown
+after each step.
+
+**Cheap to build for the same reason Simulation was** — `computeStrategy()`
+(`server/src/services/strategyEngine.js`) is a pure function over data the gap-analysis and
+risk-prediction engines already compute: it walks a framework's remaining unsatisfied items in
+the checklist's own authored order (already foundational-first — policies before evidence) and
+accumulates the score exactly the way `scoreFromCtx()` does, stopping once the 75% line is
+crossed. No LLM call, no new data model, no synthetic priority score to invent.
+
+**The timeline is real or it isn't shown.** A step sequence is easy to produce honestly; a
+*date* is not — so a weeks-to-target estimate is only attached when Risk Prediction's own
+`pointsPerWeek` figure exists for that framework (status `projected`, meaning there's enough
+real history to trust a rate). When a framework is stalled or too new to have a trustworthy pace
+— which, currently, is every framework on the one real company in this dataset — the roadmap
+shows the step sequence with "not enough history yet to estimate timing" rather than inventing an
+ETA. A `capped` status (distinct from `in_progress`) honestly flags the rare case where even
+completing every currently-automatable item wouldn't cross 75%, because some remaining checklist
+items aren't automatable yet.
+
+Verified with 3 synthetic scenarios (`at_target`, `capped`, and a real `weeksEstimate` calculation
+against a synthetic pace) before wiring in, then checked against Qualifix Technologies' actual
+data — all 4 framework step sequences and their cumulative scores match hand-computed values
+exactly, and `weeksEstimate` correctly comes back `null` everywhere (every framework is currently
+`stalled` per Risk Prediction, so there's no rate to project from).
+
 ## Product polish pass
 
 A round of direct user feedback: keep the product hard-coded/deterministic wherever possible
