@@ -37,6 +37,18 @@ tiles use distinct colored icon treatments per metric, and the hero readiness ca
 Compliance Officer card use gradient/depth styling to read as a designed product rather than a
 form. All still driven by real computed numbers — the polish pass changed presentation, not data.
 
+**Dashboard layout pass.** By the time Risk Prediction, the Certification Roadmap, and Simulation
+had all shipped, the Dashboard had become five full-width panels stacked back to back below the
+hero — a report dump, not a dashboard. Fixed without touching any data logic: Risk Distribution
+and Recent Activity moved up next to the other "at a glance" pairs instead of being buried after
+the forecasting panels; Risk Prediction and the Certification Roadmap — both per-framework,
+forward-looking views over the same data — were merged into one "Forecast" panel with a Pace/
+Roadmap tab switcher (`client/src/pages/ComplianceGapAnalysis.jsx`) instead of two separate
+panels; and the Simulation summary (score-impact strip + "Clear simulation") now renders inline
+at the top of the Framework Detail panel it already controls, instead of living in its own panel
+above it. Net effect: the same five sections of real functionality, in three panels instead of
+five, with related content grouped instead of listed in build order.
+
 ## Stack
 
 - `server/`: Node.js + Express + PostgreSQL API, `docx` for export

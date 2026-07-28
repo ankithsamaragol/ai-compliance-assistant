@@ -126,6 +126,7 @@ export default function ComplianceGapAnalysis({
   const [generatingReport, setGeneratingReport] = useState(false);
   const [simKeys, setSimKeys] = useState(() => new Set());
   const [simResult, setSimResult] = useState(null);
+  const [forecastTab, setForecastTab] = useState('pace');
 
   function load() {
     api.getGapAnalysis(company.id).then(setData).catch((err) => setError(err.message));
@@ -402,73 +403,6 @@ export default function ComplianceGapAnalysis({
         </div>
       </div>
 
-      {riskPrediction?.frameworks?.length > 0 && (
-        <div className="panel">
-          <h3 style={{ marginTop: 0 }}>Risk prediction</h3>
-          <div className="meta" style={{ fontSize: 12, marginBottom: 8 }}>
-            Based on real score history only — projects when a framework will cross the {riskPrediction.targetScore}%
-            "on track" line at its current pace, or flags it as stalled. No history yet, no projection.
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {riskPrediction.frameworks.map((fw) => {
-              const status = RISK_STATUS[fw.status];
-              return (
-                <div key={fw.key} className="priority-item">
-                  <div className="priority-item-body">
-                    <div className="priority-item-title">{fw.label}</div>
-                    <div className="priority-item-meta">{riskDetail(fw)}</div>
-                  </div>
-                  <span className="status-badge" style={{ background: `${status.color}22`, color: status.color }}>
-                    {status.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {strategy?.frameworks?.length > 0 && (
-        <div className="panel">
-          <h3 style={{ marginTop: 0 }}>Certification roadmap</h3>
-          <div className="meta" style={{ fontSize: 12, marginBottom: 8 }}>
-            The full ordered sequence of remaining steps to cross the 75% "on track" line for each
-            framework — not just the single next best action. Timing shown only when there's enough
-            real history to trust a pace; otherwise it's the sequence alone.
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-            {strategy.frameworks.map((fw) => (
-              <div key={fw.key} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontWeight: 600 }}>{fw.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(fw.currentScore) }}>{fw.currentScore}%</span>
-                </div>
-                {fw.status === 'at_target' ? (
-                  <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>Already at or above the 75% target.</div>
-                ) : (
-                  <>
-                    <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>
-                      {fw.weeksEstimate
-                        ? `~${fw.weeksEstimate} week${fw.weeksEstimate === 1 ? '' : 's'} at your current pace`
-                        : 'Not enough history yet to estimate timing'}
-                      {fw.status === 'capped' && ' — some remaining items aren\'t automatable yet, target may not be fully reachable from here'}
-                    </div>
-                    <ol style={{ margin: '8px 0 0', paddingLeft: 20 }}>
-                      {fw.steps.map((step) => (
-                        <li key={step.key} style={{ fontSize: 12.5, marginBottom: 6 }}>
-                          <span style={{ fontWeight: 600 }}>{step.label}</span>
-                          <span className="meta" style={{ marginLeft: 6 }}>→ {step.scoreAfter}%</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="dashboard-columns">
         <div className="panel">
           <h3 style={{ marginTop: 0 }}>Risk distribution</h3>
@@ -504,6 +438,95 @@ export default function ComplianceGapAnalysis({
         </div>
       </div>
 
+      {(riskPrediction?.frameworks?.length > 0 || strategy?.frameworks?.length > 0) && (
+        <div className="panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+            <h3 style={{ margin: 0 }}>Forecast</h3>
+            <div className="tab-toggle">
+              <button
+                type="button"
+                className={`tab-toggle-btn ${forecastTab === 'pace' ? 'active' : ''}`}
+                onClick={() => setForecastTab('pace')}
+              >
+                Pace
+              </button>
+              <button
+                type="button"
+                className={`tab-toggle-btn ${forecastTab === 'roadmap' ? 'active' : ''}`}
+                onClick={() => setForecastTab('roadmap')}
+              >
+                Roadmap
+              </button>
+            </div>
+          </div>
+
+          {forecastTab === 'pace' && riskPrediction?.frameworks?.length > 0 && (
+            <>
+              <div className="meta" style={{ fontSize: 12, margin: '10px 0' }}>
+                Based on real score history only — projects when a framework will cross the {riskPrediction.targetScore}%
+                "on track" line at its current pace, or flags it as stalled. No history yet, no projection.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {riskPrediction.frameworks.map((fw) => {
+                  const status = RISK_STATUS[fw.status];
+                  return (
+                    <div key={fw.key} className="priority-item">
+                      <div className="priority-item-body">
+                        <div className="priority-item-title">{fw.label}</div>
+                        <div className="priority-item-meta">{riskDetail(fw)}</div>
+                      </div>
+                      <span className="status-badge" style={{ background: `${status.color}22`, color: status.color }}>
+                        {status.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {forecastTab === 'roadmap' && strategy?.frameworks?.length > 0 && (
+            <>
+              <div className="meta" style={{ fontSize: 12, margin: '10px 0' }}>
+                The full ordered sequence of remaining steps to cross the 75% "on track" line for each
+                framework — not just the single next best action. Timing shown only when there's enough
+                real history to trust a pace; otherwise it's the sequence alone.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                {strategy.frameworks.map((fw) => (
+                  <div key={fw.key} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontWeight: 600 }}>{fw.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(fw.currentScore) }}>{fw.currentScore}%</span>
+                    </div>
+                    {fw.status === 'at_target' ? (
+                      <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>Already at or above the 75% target.</div>
+                    ) : (
+                      <>
+                        <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>
+                          {fw.weeksEstimate
+                            ? `~${fw.weeksEstimate} week${fw.weeksEstimate === 1 ? '' : 's'} at your current pace`
+                            : 'Not enough history yet to estimate timing'}
+                          {fw.status === 'capped' && ' — some remaining items aren\'t automatable yet, target may not be fully reachable from here'}
+                        </div>
+                        <ol style={{ margin: '8px 0 0', paddingLeft: 20 }}>
+                          {fw.steps.map((step) => (
+                            <li key={step.key} style={{ fontSize: 12.5, marginBottom: 6 }}>
+                              <span style={{ fontWeight: 600 }}>{step.label}</span>
+                              <span className="meta" style={{ marginLeft: 6 }}>→ {step.scoreAfter}%</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {data.crossFrameworkHints?.length > 0 && (
         <div className="panel">
           <h3 style={{ marginTop: 0 }}>Reuse across frameworks</h3>
@@ -532,9 +555,9 @@ export default function ComplianceGapAnalysis({
       )}
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <h3 style={{ margin: 0 }}>Simulation</h3>
+            <h3 style={{ margin: 0 }}>Framework detail</h3>
             <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>
               Tick "Simulate" on any unmet item below to see the score impact — nothing is saved,
               this is a sandbox over your real current data.
@@ -542,12 +565,12 @@ export default function ComplianceGapAnalysis({
           </div>
           {simKeys.size > 0 && (
             <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={() => setSimKeys(new Set())}>
-              Clear ({simKeys.size})
+              Clear simulation ({simKeys.size})
             </button>
           )}
         </div>
         {simResult && (
-          <div style={{ marginTop: 12 }}>
+          <div className="sim-result-strip">
             <div className="priority-item">
               <div className="priority-item-body">
                 <div className="priority-item-title">Overall readiness</div>
@@ -570,11 +593,7 @@ export default function ComplianceGapAnalysis({
             })}
           </div>
         )}
-      </div>
-
-      <div className="panel">
-        <h3 style={{ marginTop: 0 }}>Framework detail</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 14 }}>
           {data.frameworks.map((fw) => (
             <div key={fw.key} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>

@@ -361,6 +361,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .dashboard-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .dashboard-columns { grid-template-columns: 1fr; } }
 
+.tab-toggle { display: flex; gap: 2px; background: var(--panel-raised); border-radius: 8px; padding: 2px; flex-shrink: 0; }
+.tab-toggle-btn {
+  margin-top: 0; padding: 5px 14px; font-size: 12px; font-weight: 600; border-radius: 6px;
+  background: transparent; color: var(--muted); border: none; cursor: pointer; transition: background 0.12s ease, color 0.12s ease;
+}
+.tab-toggle-btn.active { background: var(--accent); color: white; }
+.tab-toggle-btn:hover:not(.active) { color: var(--text); }
+
+.sim-result-strip {
+  margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: rgba(91,140,255,0.06);
+  border: 1px solid var(--accent-dim, var(--border));
+}
+.sim-result-strip .priority-item { padding: 6px 0; }
+
 .priority-item {
   display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border);
 }
