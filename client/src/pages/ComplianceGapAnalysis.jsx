@@ -210,7 +210,7 @@ export default function ComplianceGapAnalysis({
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
         <div>
           <h2 className="section-heading" style={{ marginBottom: 4 }}>
             {greetingWord()}{firstName ? `, ${firstName}` : ''} 👋

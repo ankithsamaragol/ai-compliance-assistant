@@ -530,6 +530,30 @@ follows) specifically to add a search box (filters by title or framework, client
 pagination (6 per page) — the flat unbounded grid stopped being usable once a company has more
 than a screenful of generated documents.
 
+## Demo-readiness polish
+
+A pre-demo check turned up a few real, small rough edges (favicon, mobile layout) — fixed, not
+just noted:
+
+- **Favicon** — the app had none (browser default blank tab icon). Added an SVG favicon
+  (`client/public/favicon.svg`) reusing the same shield mark and accent color already used
+  throughout the sidebar/topbar, plus a meta description, so the browser tab and any link preview
+  look intentional.
+- **Mobile topbar** — at phone width the topbar (brand name + framework tagline + user name/role)
+  had no responsive handling at all and wrapped into three cramped lines, crowding the user avatar.
+  Added a `max-width: 560px` breakpoint that hides the tagline and user name/role text, keeping
+  just the brand mark and avatar — the same "hide secondary text, keep icons" pattern the
+  workspace sidebar already used above 860px.
+- **Dashboard greeting header** — the "Good morning, X 👋" + Refresh/Executive report buttons row
+  used `justify-content: space-between` with no wrap, so on narrow screens the two buttons
+  overlapped the greeting text instead of dropping below it. Same missing-wrap bug existed on the
+  "Your Companies" / "+ New company" header on the company list. Both fixed with `flexWrap: 'wrap'`,
+  matching the pattern every other page's header already used (Evidence, Vendors, Chat, Documents) —
+  this was the one page that got missed when that pattern was established.
+
+Verified at 375px (mobile) and 768px (tablet) after the fix — sidebar collapse, dashboard cards,
+and both header rows all render cleanly at both widths, with no change to desktop layout.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)

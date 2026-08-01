@@ -93,7 +93,7 @@ export default function Dashboard({ onOpenCompany }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
         <div>
           <h2 className="section-heading" style={{ marginBottom: 4 }}>Your Companies</h2>
           <div className="meta">Manage and monitor compliance across all your organizations.</div>
