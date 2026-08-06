@@ -1,14 +1,14 @@
 const BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const MODEL = process.env.OLLAMA_MODEL || 'llama3.2:3b';
 
-async function run({ systemPrompt, userPrompt, history }) {
+async function run({ systemPrompt, userPrompt, history, maxTokens }) {
   const res = await fetch(`${BASE_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
       stream: false,
-      options: { num_predict: 8000 },
+      options: { num_predict: maxTokens || 8000 },
       messages: [
         { role: 'system', content: systemPrompt },
         ...(history || []),

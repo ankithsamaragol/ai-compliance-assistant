@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { generateDocument, listProviders } = require('../services/generateDocument');
+const { checkConsistency } = require('../services/documentConsistency');
 const { exportToDocx } = require('../services/exportDocx');
 const { listFrameworks, getDocTypeDef } = require('../templates/catalog');
 const { recordSnapshot } = require('../services/scoreHistory');
@@ -83,6 +84,27 @@ router.post('/generate', generateLimiter, async (req, res, next) => {
       );
       throw genErr;
     }
+  } catch (err) { next(err); }
+});
+
+router.post('/consistency-check', generateLimiter, async (req, res, next) => {
+  try {
+    const { companyId, provider } = req.body;
+    if (!companyId) return res.status(400).json({ error: 'companyId is required' });
+
+    const company = await loadOwnedCompany(companyId, req.account.id);
+    if (!company) return res.status(404).json({ error: 'Company not found' });
+
+    const { rows } = await pool.query(
+      `SELECT id, title, content_md FROM documents
+       WHERE company_id = $1 AND status = 'ready' AND framework != 'executive_report'`,
+      [companyId],
+    );
+    if (rows.length < 2) {
+      return res.json({ findings: [], checkedCount: rows.length });
+    }
+
+    res.json(await checkConsistency({ documents: rows, provider }));
   } catch (err) { next(err); }
 });
 

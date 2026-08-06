@@ -426,6 +426,51 @@ a second company (adding a cloud provider via PATCH without re-running vendor de
 both a change alert and a drift alert fire together, and that dismissing the change alert leaves the
 drift alert in place — proving the two are independent concepts, not duplicates.
 
+## Cross-document consistency checking
+
+Documents are generated independently — a Privacy Policy today, a DPA next week, an Incident
+Response Plan after that — each drafted fresh from the company profile with no memory of what the
+others said. Nothing stops the same real-world fact from being stated differently in two documents,
+and that's exactly the kind of thing an auditor (or a customer's legal team) reads closely enough to
+notice. **"Check consistency"** on the Documents tab (`client/src/pages/Documents.jsx`) checks three
+facts that are supposed to be the same everywhere they're mentioned:
+- Data retention period
+- Breach/incident notification window
+- Privacy/DPO contact email
+
+**Extraction is AI, the verdict is not.** Reading "90 days" and "ninety days" as equal, or "72 hours"
+and "30 days" as different, requires actually understanding the sentence — that's a genuine job for
+the model, not something a regex can do reliably (`server/src/services/documentConsistency.js`, one
+extraction call per ready document, run **sequentially** rather than in parallel — see below). But
+once each document's facts are pulled into a normalized number or email, deciding whether two
+documents disagree is one line of plain equality-check code (`compareFacts()`), so the "is this
+actually a contradiction" call is never itself an AI guess. Conservative by design: a fact is only
+extracted if it's stated as a single, clear, general value — narrower or category-specific figures
+(e.g. "forensic evidence retained for 90 days" or an internal escalation deadline) are deliberately
+left out rather than risking a false match against the general policy.
+
+**Two real bugs surfaced during verification, both fixed before shipping:**
+- Firing every document's extraction request at once (`Promise.all`) reliably blew through Groq's
+  per-minute token budget on any company with more than a couple of documents — exactly the
+  companies this feature exists for. Fixed by extracting sequentially instead.
+- Groq's rate limit reserves against the *requested* `max_tokens`, not what's actually generated —
+  and the shared `groq.js`/`ollama.js` provider modules hardcoded `max_tokens: 8000` for every call,
+  a limit sized for generating a full document. A tiny JSON-extraction call was being billed as if it
+  might return 8000 tokens. Both provider modules now accept an optional `maxTokens` override; the
+  consistency checker asks for 400.
+
+**A real false positive caught and fixed during testing, not just synthetic cases:** the first version
+flagged Qualifix Technologies' retention period as inconsistent — its DPA states 3 years, but its CMMC
+Incident Response Plan says "at least 90 days." Reading the actual document, that 90 days is forensic
+disk-image preservation for DoD damage assessment, not general data retention — a different fact
+entirely that happened to reuse the word "retained." Tightened the extraction prompt to explicitly
+exclude backups, logs, and forensic-evidence retention from the general-retention slot, reran, and the
+false positive disappeared while the genuine finding stayed: Qualifix's DPA promises breach
+notification "no later than 48 hours," but its CMMC Incident Response Plan (titled, not coincidentally,
+"DFARS 72-Hour Reporting") commits to 72 hours — a real contradiction an auditor would flag. Also
+verified clean (zero findings) on Cal.com's 2-document set, confirming the check doesn't manufacture
+noise when there's nothing wrong.
+
 ## Risk prediction
 
 The `score_snapshots` table Phase 5's foundation built was sitting there recording real history but

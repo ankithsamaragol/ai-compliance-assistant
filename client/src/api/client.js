@@ -102,5 +102,7 @@ export const api = {
   getDocument: (id) => request(`/documents/${id}`),
   generateDocument: (companyId, framework, docType, provider) =>
     request('/documents/generate', { method: 'POST', body: { companyId, framework, docType, provider } }),
+  checkDocumentConsistency: (companyId, provider) =>
+    request('/documents/consistency-check', { method: 'POST', body: { companyId, provider } }),
   exportDocumentUrl: (id) => `/api/documents/${id}/export`,
 };

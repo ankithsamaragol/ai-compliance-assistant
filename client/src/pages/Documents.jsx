@@ -14,10 +14,14 @@ export default function Documents({
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [consistency, setConsistency] = useState(null);
+  const [checkingConsistency, setCheckingConsistency] = useState(false);
+  const [consistencyError, setConsistencyError] = useState('');
 
   const currentFrameworkDocTypes = catalog.find((f) => f.key === framework)?.docTypes || [];
   const currentProvider = providers.find((p) => p.key === provider);
   const realDocuments = documents.filter((d) => d.framework !== 'executive_report');
+  const readyCount = realDocuments.filter((d) => d.status === 'ready').length;
 
   const q = search.trim().toLowerCase();
   const filteredDocuments = q
@@ -45,6 +49,18 @@ export default function Documents({
       setError(err.message);
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function runConsistencyCheck() {
+    setConsistencyError('');
+    setCheckingConsistency(true);
+    try {
+      setConsistency(await api.checkDocumentConsistency(company.id, provider));
+    } catch (err) {
+      setConsistencyError(err.message);
+    } finally {
+      setCheckingConsistency(false);
     }
   }
 
@@ -153,6 +169,43 @@ export default function Documents({
               Next →
             </button>
           </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Cross-document consistency</h3>
+            <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>
+              Checks whether retention period, breach-notification timing, and privacy contact agree
+              across your generated documents.
+            </div>
+          </div>
+          <button style={{ marginTop: 0 }} onClick={runConsistencyCheck} disabled={checkingConsistency || readyCount < 2}>
+            {checkingConsistency ? 'Checking…' : 'Check consistency'}
+          </button>
+        </div>
+        {readyCount < 2 && <div className="meta" style={{ marginTop: 8 }}>Generate at least 2 documents to run this check.</div>}
+        {consistencyError && <div className="error">{consistencyError}</div>}
+        {consistency && (
+          consistency.findings.length === 0 ? (
+            <div className="meta" style={{ marginTop: 12 }}>
+              No inconsistencies found across {consistency.checkedCount} document{consistency.checkedCount === 1 ? '' : 's'}.
+            </div>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              {consistency.findings.map((f) => (
+                <div key={f.factKey} className="priority-item" style={{ display: 'block' }}>
+                  <div className="priority-item-title">{f.label} is stated differently across documents</div>
+                  {f.documents.map((d) => (
+                    <div key={d.id} className="priority-item-meta" style={{ marginTop: 2 }}>
+                      <strong>{d.title}</strong>: "{d.raw}" → {d.value}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 
