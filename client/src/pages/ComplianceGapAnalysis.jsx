@@ -228,7 +228,7 @@ export default function ComplianceGapAnalysis({
 
       {alerts.length > 0 && (
         <div className="panel" style={{ marginBottom: 14 }}>
-          <h3 style={{ marginTop: 0 }}><IconAlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} />Profile changes to review</h3>
+          <h3 style={{ marginTop: 0 }}><IconAlertTriangle size={16} style={{ verticalAlign: -2, marginRight: 6 }} />Needs your attention</h3>
           {alerts.map((alert) => (
             <div key={alert.id} className="priority-item">
               <div className="priority-item-body">
@@ -243,13 +243,15 @@ export default function ComplianceGapAnalysis({
                   {alert.suggested_action === 'vendors' ? 'Vendors' : 'Documents'}
                 </button>
               )}
-              <button
-                className="secondary"
-                style={{ marginTop: 0, fontSize: 12 }}
-                onClick={() => dismissAlert(alert.id)}
-              >
-                Dismiss
-              </button>
+              {alert.dismissable !== false && (
+                <button
+                  className="secondary"
+                  style={{ marginTop: 0, fontSize: 12 }}
+                  onClick={() => dismissAlert(alert.id)}
+                >
+                  Dismiss
+                </button>
+              )}
             </div>
           ))}
         </div>

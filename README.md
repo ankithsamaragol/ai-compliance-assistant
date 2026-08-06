@@ -394,6 +394,38 @@ no snooze. `detectProfileChanges()` is a pure function deliberately kept separat
 code, verified with 6 synthetic before/after scenarios (including confirming removal-only changes
 produce zero alerts) before being wired into the live PATCH endpoint.
 
+## Profile-vs-reality drift detection
+
+Business change detection (above) catches an edit the moment it happens — but it can't catch the
+case where nobody edited anything wrong and the profile and the Vendor Risk Register just quietly
+drifted apart over time. That's a real trust problem for a compliance tool specifically: if the
+profile and the register disagree, which one does an auditor believe?
+
+`server/src/services/profileDriftDetection.js` checks two directions on every
+`GET /api/companies/:id/alerts` call:
+- A vendor sits in the register but no longer matches anything in the profile's tools or cloud
+  providers → probably removed from the profile after detection ran, register never updated.
+- The profile lists a cloud provider with no matching vendor entry at all → vendor detection
+  hasn't been (re-)run since that provider was added.
+
+Matching is alias-aware (`aws` matches "Amazon Web Services", `gcp` matches "Google Cloud", etc.)
+so a naming difference alone doesn't trigger a false alert.
+
+**Recomputed fresh, never stored** — unlike a change alert, drift describes the current state, not
+a one-time event. There's deliberately no dismiss button for it: dismissing a still-true
+inconsistency would hide it, not resolve it. It simply stops appearing once the mismatch is
+actually fixed. The Dashboard's alert panel (renamed "Needs your attention" to cover both alert
+types) shows change alerts with a Dismiss button and drift alerts without one, side by side.
+
+Verified with 5 synthetic scenarios (`node -e` script: in-sync, stale vendor, missing vendor, alias
+matching, empty state) before wiring into the live route, then confirmed against real data: Qualifix
+Technologies — one of this session's demo companies — turned out to have **genuine pre-existing
+drift** (Google and Stripe sit in its Vendor Risk Register but no longer appear in its current
+`tools_used` profile field), correctly surfaced with no changes needed to trigger it. A live test on
+a second company (adding a cloud provider via PATCH without re-running vendor detection) confirmed
+both a change alert and a drift alert fire together, and that dismissing the change alert leaves the
+drift alert in place — proving the two are independent concepts, not duplicates.
+
 ## Risk prediction
 
 The `score_snapshots` table Phase 5's foundation built was sitting there recording real history but

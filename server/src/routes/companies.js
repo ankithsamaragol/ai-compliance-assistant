@@ -3,6 +3,7 @@ const multer = require('multer');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { detectProfileChanges } = require('../services/profileChangeDetection');
+const { detectProfileDrift } = require('../services/profileDriftDetection');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -116,16 +117,29 @@ router.patch('/:id', async (req, res, next) => {
 
 router.get('/:id/alerts', async (req, res, next) => {
   try {
-    const { rows: companyRows } = await pool.query('SELECT id FROM companies WHERE id = $1 AND account_id = $2', [
+    const { rows: companyRows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [
       req.params.id, req.account.id,
     ]);
-    if (!companyRows[0]) return res.status(404).json({ error: 'Company not found' });
+    const company = companyRows[0];
+    if (!company) return res.status(404).json({ error: 'Company not found' });
 
-    const { rows } = await pool.query(
-      `SELECT * FROM profile_change_alerts WHERE company_id = $1 AND dismissed = false ORDER BY created_at DESC`,
-      [req.params.id],
-    );
-    res.json(rows);
+    const [{ rows: changeAlerts }, { rows: vendors }] = await Promise.all([
+      pool.query(`SELECT * FROM profile_change_alerts WHERE company_id = $1 AND dismissed = false ORDER BY created_at DESC`, [req.params.id]),
+      pool.query(`SELECT name, risk_tier FROM vendors WHERE company_id = $1`, [req.params.id]),
+    ]);
+
+    // Drift alerts are recomputed fresh on every request rather than stored — they describe the
+    // current state (profile vs. vendor register disagreeing), not a one-time event, so there's
+    // no separate row to dismiss: the alert simply stops appearing once the mismatch is fixed.
+    const driftAlerts = detectProfileDrift(company, vendors).map((a, i) => ({
+      id: `drift-${i}`,
+      message: a.message,
+      suggested_action: a.suggested_action,
+      dismissed: false,
+      dismissable: false,
+    }));
+
+    res.json([...changeAlerts.map((a) => ({ ...a, dismissable: true })), ...driftAlerts]);
   } catch (err) { next(err); }
 });
 
