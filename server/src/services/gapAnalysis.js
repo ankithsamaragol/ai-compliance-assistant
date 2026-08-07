@@ -18,10 +18,23 @@ function isSatisfied(check, itemKey, frameworkKey, ctx) {
   return false; // 'unavailable' — an honest gap, not something we can check yet
 }
 
-function actionKeyFor(check) {
+// How much real-world work an action takes, not how much it's worth — kept separate from impact
+// so ranking can weigh both instead of only chasing the biggest point number. Deterministic from
+// the checklist item's own check type, not a guess: 'document' and 'vendors' resolve with one
+// click (AI drafts the document / detects vendors from the profile already on file); 'evidence'
+// requires the user to actually go produce or locate a real file first — there's no button that
+// makes training records or backup logs exist.
+const EFFORT = {
+  document: { weight: 1, label: 'Quick — AI-generated' },
+  vendors: { weight: 1, label: 'Quick — AI-detected from your profile' },
+  evidence: { weight: 3, label: 'Needs a real file you locate and upload' },
+};
+
+function actionKeyFor(check, frameworkKey, itemKey) {
   if (check.type === 'document') return `document:${check.framework}:${check.docType}`;
   if (check.type === 'vendors') return 'vendors';
-  return null; // unavailable items aren't actionable, so they can't be "next best actions"
+  if (check.type === 'evidence') return `evidence:${frameworkKey}:${itemKey}`;
+  return null; // 'unavailable' items aren't actionable, so they can't be "next best actions"
 }
 
 function computeNextActions(frameworks, checklistByKey) {
@@ -32,16 +45,18 @@ function computeNextActions(frameworks, checklistByKey) {
     fw.items.forEach((item, idx) => {
       if (item.satisfied || !item.automatable) return;
       const check = def.items[idx].check;
-      const actionKey = actionKeyFor(check);
+      const actionKey = actionKeyFor(check, fw.key, item.key);
       if (!actionKey) return;
 
       const scoreIfDone = Math.round(((fw.satisfiedCount + 1) / fw.totalCount) * 100);
       const entry = actions.get(actionKey) || {
+        key: actionKey,
         actionType: check.type,
         label: item.label,
         why: item.why,
         framework: check.framework,
         docType: check.docType,
+        effort: EFFORT[check.type],
         affects: [],
       };
       entry.affects.push({ frameworkKey: fw.key, frameworkLabel: fw.label, from: fw.score, to: scoreIfDone });
@@ -49,9 +64,13 @@ function computeNextActions(frameworks, checklistByKey) {
     });
   }
 
+  // Ranked by impact per unit of effort, not raw impact — a quick +15pt document should usually
+  // beat a +17pt item that needs real evidence produced first, but a high-effort item still wins
+  // when it's genuinely the best (or only) option left. totalLift alone breaks ties, and stays in
+  // the response so the UI can show the raw number alongside the effort label rather than hiding it.
   return Array.from(actions.values())
     .map((a) => ({ ...a, totalLift: a.affects.reduce((sum, x) => sum + (x.to - x.from), 0) }))
-    .sort((a, b) => b.totalLift - a.totalLift)
+    .sort((a, b) => (b.totalLift / b.effort.weight) - (a.totalLift / a.effort.weight) || b.totalLift - a.totalLift)
     .slice(0, 3);
 }
 

@@ -572,6 +572,39 @@ data — all 4 framework step sequences and their cumulative scores match hand-c
 exactly, and `weeksEstimate` correctly comes back `null` everywhere (every framework is currently
 `stalled` per Risk Prediction, so there's no rate to project from).
 
+## Effort-aware prioritization
+
+"Today's priorities" always ranked by raw score impact — and its action list only ever drew from
+`document` and `vendors` checklist items, because those are the two check types with an actual
+one-click action (`actionKeyFor()` in `server/src/services/gapAnalysis.js` returned `null` for
+`evidence`-type items, silently dropping them). That meant real gaps like Security Awareness
+Training Records or a Backup & Disaster Recovery Procedure — often a large share of a framework's
+remaining checklist — could never appear as a "next step" no matter how much score they were worth,
+because they need a real file the user actually produces or locates, not a button click.
+
+Two changes, both in `computeNextActions()`:
+- `evidence` items now get a real action key (`evidence:<framework>:<itemKey>`) and are included
+  in the ranking pool for the first time, with a "Evidence" button that jumps to the Evidence tab
+  (`onNavigateToEvidence`, mirroring the existing `onNavigateToDocuments` pattern).
+- Ranking is now by **impact per unit of effort**, not raw impact. Effort is a small deterministic
+  weight keyed off the item's own `check.type` — 1 for `document`/`vendors` (one click, AI does the
+  rest), 3 for `evidence` (requires a real file to exist first) — not a fabricated hours estimate,
+  just an honest "this one needs real-world work first" signal used to break ties in favor of quick
+  wins. The raw point value (`totalLift`) still ships in the response and is still shown in the UI
+  alongside the effort label, so nothing is hidden — just re-ordered, and evidence items still win
+  the slot when they're genuinely the best (or only) option left.
+
+Verified with 3 synthetic scenarios: an empty-state company correctly surfaces only quick document/
+vendor wins in the top 3 despite an evidence item having a comparable raw score; a company with every
+document generated and every vendor detected — previously guaranteed to show "All automatable
+checklist items are complete" even with real evidence gaps open — now correctly surfaces those
+evidence items, confirming a real gap in the old logic rather than an edge case; a fully-complete
+company still returns an empty list with no crash. A real bug was caught in this pass, not just the
+synthetic tests: the React key for each priority item was built from `action.framework`/`docType`,
+both `undefined` for evidence items, so multiple evidence actions shown together would have
+collided on the same key — fixed by threading the actual dedup key (`action.key`) from the backend
+through to the list instead of reconstructing it in the UI.
+
 ## Product polish pass
 
 A round of direct user feedback: keep the product hard-coded/deterministic wherever possible

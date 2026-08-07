@@ -113,7 +113,7 @@ const STAT_COLORS = [
 
 export default function ComplianceGapAnalysis({
   company, userName, refreshKey, onSelectDocumentAction, onSelectVendorAction, onNavigateToChat,
-  onNavigateToDocuments, provider, onReportGenerated, documents,
+  onNavigateToDocuments, onNavigateToEvidence, provider, onReportGenerated, documents,
 }) {
   const [data, setData] = useState(null);
   const [vendors, setVendors] = useState([]);
@@ -370,20 +370,25 @@ export default function ComplianceGapAnalysis({
           <h3 style={{ marginTop: 0 }}>Today's priorities</h3>
           {!data.nextActions?.length && <div className="meta">All automatable checklist items are complete.</div>}
           {data.nextActions?.map((action) => (
-            <div key={`${action.actionType}-${action.framework || ''}-${action.docType || ''}`} className="priority-item">
+            <div key={action.key} className="priority-item">
               <div className="priority-item-body">
                 <div className="priority-item-title">{action.label}</div>
-                <div className="priority-item-meta">{action.affects.map((a) => `${a.frameworkLabel} ${a.from}%→${a.to}%`).join('  ·  ')}</div>
+                <div className="priority-item-meta">
+                  {action.affects.map((a) => `${a.frameworkLabel} ${a.from}%→${a.to}%`).join('  ·  ')}
+                  {action.effort?.label && <span> · {action.effort.label}</span>}
+                </div>
               </div>
               <span className="priority-item-impact">+{action.totalLift}pt</span>
               <button
                 className="secondary"
                 style={{ marginTop: 0, fontSize: 12 }}
-                onClick={() => (action.actionType === 'vendors'
-                  ? onSelectVendorAction?.()
-                  : onSelectDocumentAction?.(action.framework, action.docType))}
+                onClick={() => {
+                  if (action.actionType === 'vendors') onSelectVendorAction?.();
+                  else if (action.actionType === 'evidence') onNavigateToEvidence?.();
+                  else onSelectDocumentAction?.(action.framework, action.docType);
+                }}
               >
-                {action.actionType === 'vendors' ? 'Vendors' : 'Generate'}
+                {action.actionType === 'vendors' ? 'Vendors' : action.actionType === 'evidence' ? 'Evidence' : 'Generate'}
               </button>
             </div>
           ))}

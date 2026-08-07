@@ -146,6 +146,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
               onSelectVendorAction={jumpToVendors}
               onNavigateToChat={() => setActiveTab('chat')}
               onNavigateToDocuments={() => setActiveTab('documents')}
+              onNavigateToEvidence={() => setActiveTab('evidence')}
               provider={provider}
               onReportGenerated={(doc) => {
                 setDocuments((prev) => [doc, ...prev]);
