@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { computeGapAnalysis, simulateGapAnalysis } = require('../services/gapAnalysis');
@@ -6,13 +7,30 @@ const { evidenceTargets } = require('../services/evidenceIntelligence');
 const { getWeeklyTrend, getTimeline, getLatestInsight } = require('../services/scoreHistory');
 const { computeRiskPrediction } = require('../services/riskPrediction');
 const { computeStrategy } = require('../services/strategyEngine');
+const { interpretClause } = require('../services/regulationInterpreter');
 
 const router = express.Router();
 router.use(requireAuth);
 
+// This route file's other endpoints are all deterministic reads over already-computed data — this
+// is the first one that calls out to an AI provider, so it's the first that needs a cost guardrail.
+const interpretLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: Number(process.env.GENERATE_RATE_LIMIT_PER_HOUR) || 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `account:${req.account.id}`,
+  message: { error: 'Generation rate limit reached. Try again later.' },
+});
+
 async function loadOwnedCompanyId(companyId, accountId) {
   const { rows } = await pool.query('SELECT id FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
   return rows[0] ? rows[0].id : null;
+}
+
+async function loadOwnedCompany(companyId, accountId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+  return rows[0] || null;
 }
 
 router.get('/evidence-targets', (req, res) => {
@@ -97,6 +115,20 @@ router.get('/timeline', async (req, res, next) => {
     if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
 
     res.json(await getTimeline(companyId));
+  } catch (err) { next(err); }
+});
+
+router.post('/interpret-regulation', interpretLimiter, async (req, res, next) => {
+  try {
+    const { companyId, clauseText, provider } = req.body;
+    if (!companyId) return res.status(400).json({ error: 'companyId is required' });
+    if (!clauseText || !clauseText.trim()) return res.status(400).json({ error: 'clauseText is required' });
+
+    const company = await loadOwnedCompany(companyId, req.account.id);
+    if (!company) return res.status(404).json({ error: 'Company not found' });
+
+    const gapAnalysis = await computeGapAnalysis(companyId);
+    res.json(await interpretClause({ company, clauseText, gapAnalysis, provider }));
   } catch (err) { next(err); }
 });
 

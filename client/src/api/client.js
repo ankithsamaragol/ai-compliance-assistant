@@ -63,6 +63,8 @@ export const api = {
   getRiskPrediction: (companyId) => request(`/compliance/risk-prediction?companyId=${companyId}`),
   getStrategy: (companyId) => request(`/compliance/strategy?companyId=${companyId}`),
   simulateGapAnalysis: (companyId, itemKeys) => request('/compliance/simulate', { method: 'POST', body: { companyId, itemKeys } }),
+  interpretRegulation: (companyId, clauseText, provider) =>
+    request('/compliance/interpret-regulation', { method: 'POST', body: { companyId, clauseText, provider } }),
 
   listConnectors: (companyId) => request(`/connectors?companyId=${companyId}`),
   startGithubConnect: (companyId) => request(`/connectors/github/start?companyId=${companyId}`),

@@ -605,6 +605,38 @@ both `undefined` for evidence items, so multiple evidence actions shown together
 collided on the same key — fixed by threading the actual dedup key (`action.key`) from the backend
 through to the list instead of reconstructing it in the UI.
 
+## AI Regulation Interpreter
+
+Compliance Chat already answers open-ended questions grounded in a company's profile and gap
+analysis. This is a narrower, more structured tool for a different job: the user pastes an actual
+piece of regulatory text — a clause from a law, a line from a customer's security questionnaire, a
+requirement from a framework the app doesn't explicitly track yet — into a new "Regulation
+Interpreter" panel on the Dashboard (`client/src/pages/ComplianceGapAnalysis.jsx`,
+`POST /api/compliance/interpret-regulation`), and gets back a plain-English translation plus a
+grounded verdict against the company's *current real data*, not a general answer.
+
+**Two genuinely different AI jobs, one deterministic verdict.** `server/src/services/
+regulationInterpreter.js` asks the model to (1) translate the pasted text into plain English, and
+(2) map it to zero or more of this app's real checklist items — restricted to the exact same
+`{framework, key}` list used everywhere else (evidence mapping, gap analysis), never allowed to
+invent a new one, same restraint as `evidenceIntelligence.js`. What happens next is not the AI's
+call: `crossReferenceGapAnalysis()` looks up whether each mapped item is actually satisfied in the
+gap analysis this app already computed from real data, and `computeVerdict()` — a pure function —
+turns that into `likely_met`, `partial`, `gap`, or `not_covered` (zero items mapped, meaning the
+text doesn't match anything this app currently tracks — an honest "worth a manual look" rather than
+a forced match).
+
+Verified with 6 synthetic scenarios (empty/single/mixed/dangling-reference/cross-framework cases)
+before wiring in, then against 3 real pasted clauses on Qualifix Technologies:
+- **GDPR Article 30(1)** (record-of-processing-activities text) → mapped to ROPA with high
+  confidence, verdict `gap` — correct, matches the dashboard's own "Record of Processing Activities
+  (ROPA)" top recommendation for this company.
+- **An access-control policy clause** → mapped to the ISO 27001 Access Control Policy item, verdict
+  `likely_met` — correct, Qualifix has already generated that document.
+- **An unrelated internal memo about a team offsite** → zero mapped items, verdict `not_covered`,
+  with the model correctly noting the text isn't a regulatory requirement at all rather than forcing
+  a match onto the nearest-sounding checklist item.
+
 ## Product polish pass
 
 A round of direct user feedback: keep the product hard-coded/deterministic wherever possible

@@ -29,6 +29,13 @@ function impactTier(lift) {
   return { label: 'Low Impact', cls: 'tier-low' };
 }
 
+function verdictTag(verdict) {
+  if (verdict === 'likely_met') return { label: 'Likely met', bg: 'rgba(122,200,150,0.18)', color: '#8fe0ab' };
+  if (verdict === 'partial') return { label: 'Partially met', bg: 'rgba(255,193,7,0.18)', color: '#ffc107' };
+  if (verdict === 'gap') return { label: 'Gap', bg: 'rgba(255,107,107,0.18)', color: '#ff9d9d' };
+  return { label: 'Not covered by our checklist', bg: 'rgba(255,255,255,0.08)', color: 'var(--muted)' };
+}
+
 const TIER_COLOR = { critical: 'var(--danger)', high: '#cc6d00', medium: '#b8860b', low: '#2e8b52' };
 const TIER_LABEL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
 
@@ -127,6 +134,10 @@ export default function ComplianceGapAnalysis({
   const [simKeys, setSimKeys] = useState(() => new Set());
   const [simResult, setSimResult] = useState(null);
   const [forecastTab, setForecastTab] = useState('pace');
+  const [clauseText, setClauseText] = useState('');
+  const [interpretResult, setInterpretResult] = useState(null);
+  const [interpreting, setInterpreting] = useState(false);
+  const [interpretError, setInterpretError] = useState('');
 
   function load() {
     api.getGapAnalysis(company.id).then(setData).catch((err) => setError(err.message));
@@ -151,6 +162,18 @@ export default function ComplianceGapAnalysis({
       else next.add(fullKey);
       return next;
     });
+  }
+
+  async function interpretRegulation() {
+    setInterpretError('');
+    setInterpreting(true);
+    try {
+      setInterpretResult(await api.interpretRegulation(company.id, clauseText, provider));
+    } catch (err) {
+      setInterpretError(err.message);
+    } finally {
+      setInterpreting(false);
+    }
   }
 
   async function dismissAlert(alertId) {
@@ -649,6 +672,62 @@ export default function ComplianceGapAnalysis({
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="panel">
+        <h3 style={{ marginTop: 0 }}>Regulation Interpreter</h3>
+        <div className="meta" style={{ fontSize: 12, marginBottom: 10 }}>
+          Paste a regulatory clause, a line from a customer's security questionnaire, or a framework
+          requirement — get a plain-English translation and a verdict grounded in {company.name}'s
+          actual current compliance data, not a general answer.
+        </div>
+        <textarea
+          value={clauseText}
+          onChange={(e) => setClauseText(e.target.value)}
+          placeholder='e.g. "The controller shall maintain a record of processing activities under its responsibility..."'
+          rows={4}
+          style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit', fontSize: 13.5 }}
+        />
+        {interpretError && <div className="error">{interpretError}</div>}
+        <button onClick={interpretRegulation} disabled={interpreting || !clauseText.trim()}>
+          {interpreting ? 'Analyzing…' : 'Analyze clause'}
+        </button>
+
+        {interpretResult && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {(() => {
+                const tag = verdictTag(interpretResult.verdict);
+                return (
+                  <span className="hero-readiness-tag" style={{ margin: 0, background: tag.bg, color: tag.color }}>{tag.label}</span>
+                );
+              })()}
+            </div>
+            {interpretResult.plainEnglish && (
+              <p style={{ fontSize: 13.5, lineHeight: 1.5, margin: '10px 0' }}>{interpretResult.plainEnglish}</p>
+            )}
+            {interpretResult.findings.length > 0 ? (
+              <ul style={{ listStyle: 'none', padding: 0, marginTop: 8 }}>
+                {interpretResult.findings.map((f) => (
+                  <li key={`${f.framework}:${f.key}`} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <span style={{ color: f.satisfied ? 'var(--accent)' : 'var(--danger)' }}>{f.satisfied ? '✓' : '✗'}</span>
+                      <span style={{ flex: 1 }}>{f.label} <span className="meta">({f.frameworkLabel})</span></span>
+                    </div>
+                    {f.reasoning && (
+                      <div className="meta" style={{ fontSize: 11.5, marginLeft: 22, marginTop: 3 }}>{f.reasoning}</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="meta" style={{ fontSize: 12.5, marginTop: 4 }}>
+                This doesn't map to anything in {company.name}'s current checklist — it may be a new
+                requirement outside what this app tracks yet, and is worth a manual look.
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
