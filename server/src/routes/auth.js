@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
@@ -14,6 +15,16 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many attempts. Try again later.' },
+});
+
+// Same inline data: URI pattern as companies.logo_data_url — see the comment there for why.
+const AVATAR_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 },
+  fileFilter(req, file, cb) {
+    cb(null, AVATAR_MIME_TYPES.has(file.mimetype));
+  },
 });
 
 function isValidInviteCode(submitted) {
@@ -46,7 +57,7 @@ router.post('/signup', authLimiter, async (req, res, next) => {
       await client.query('BEGIN');
 
       const { rows } = await client.query(
-        'INSERT INTO accounts (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name',
+        'INSERT INTO accounts (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, avatar_data_url',
         [email.toLowerCase().trim(), passwordHash, (name || '').trim() || null],
       );
       account = rows[0];
@@ -94,7 +105,7 @@ router.post('/signup', authLimiter, async (req, res, next) => {
 router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const { rows } = await pool.query('SELECT id, email, name, password_hash FROM accounts WHERE email = $1', [
+    const { rows } = await pool.query('SELECT id, email, name, avatar_data_url, password_hash FROM accounts WHERE email = $1', [
       (email || '').toLowerCase().trim(),
     ]);
     const account = rows[0];
@@ -108,7 +119,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
       process.env.JWT_SECRET,
       { expiresIn: '7d' },
     );
-    res.json({ token, account: { id: account.id, email: account.email, name: account.name } });
+    res.json({ token, account: { id: account.id, email: account.email, name: account.name, avatar_data_url: account.avatar_data_url } });
   } catch (err) {
     next(err);
   }
@@ -117,7 +128,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `SELECT a.id, a.email, a.name, om.org_id AS "orgId", om.role, o.name AS "orgName"
+      `SELECT a.id, a.email, a.name, a.avatar_data_url, om.org_id AS "orgId", om.role, o.name AS "orgName"
        FROM accounts a
        JOIN org_members om ON om.account_id = a.id
        JOIN organizations o ON o.id = om.org_id
@@ -133,8 +144,31 @@ router.patch('/me', requireAuth, async (req, res, next) => {
   try {
     const { name } = req.body;
     const { rows } = await pool.query(
-      'UPDATE accounts SET name = $1 WHERE id = $2 RETURNING id, email, name',
+      'UPDATE accounts SET name = $1 WHERE id = $2 RETURNING id, email, name, avatar_data_url',
       [(name || '').trim() || null, req.account.id],
+    );
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+router.post('/me/avatar', requireAuth, avatarUpload.single('avatar'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded, or file type not allowed (PNG/JPG/WEBP, 500KB max)' });
+
+    const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    const { rows } = await pool.query(
+      `UPDATE accounts SET avatar_data_url = $1 WHERE id = $2 RETURNING id, email, name, avatar_data_url`,
+      [dataUrl, req.account.id],
+    );
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+router.delete('/me/avatar', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `UPDATE accounts SET avatar_data_url = NULL WHERE id = $1 RETURNING id, email, name, avatar_data_url`,
+      [req.account.id],
     );
     res.json(rows[0]);
   } catch (err) { next(err); }

@@ -30,7 +30,7 @@ const NAV = [
 
 const ROLE_LABEL = { owner: 'Owner', member: 'Member' };
 
-export default function CompanyDetail({ company, onBack, userName, userEmail, userRole, onLogout, onOpenTeam, onCompanyUpdated, onAccountUpdated }) {
+export default function CompanyDetail({ company, onBack, userName, userEmail, userRole, userAvatarUrl, onLogout, onOpenTeam, onCompanyUpdated, onAccountUpdated }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -128,7 +128,9 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
         <div className="workspace-sidebar-spacer" />
 
         <div className="workspace-user" onClick={() => setUserMenuOpen((v) => !v)}>
-          <div className="workspace-user-avatar">{initials}</div>
+          <div className="workspace-user-avatar">
+            {userAvatarUrl ? <img src={userAvatarUrl} alt="" /> : initials}
+          </div>
           <div className="workspace-user-meta">
             <span className="workspace-user-name">{displayName || 'Account'}</span>
             <span className="workspace-user-role">{ROLE_LABEL[userRole] || 'Member'}</span>
@@ -233,6 +235,9 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
             <Settings
               company={company}
               userName={userName}
+              userEmail={userEmail}
+              userAvatarUrl={userAvatarUrl}
+              userRole={userRole}
               onCompanyUpdated={onCompanyUpdated}
               onAccountUpdated={onAccountUpdated}
               onAlertsCreated={() => setGapRefreshKey((k) => k + 1)}

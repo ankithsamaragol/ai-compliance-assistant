@@ -149,6 +149,27 @@ export default function ComplianceGapAnalysis({
 
   useEffect(load, [company.id, refreshKey]);
 
+  // Same fetches as load(), but awaited with a visible loading state — load() itself stays
+  // fire-and-forget since it also runs silently on every mount/tab-switch, where a flashing
+  // "Refreshing…" label would be noise, not useful signal.
+  const [refreshing, setRefreshing] = useState(false);
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        api.getGapAnalysis(company.id).then(setData),
+        api.listVendors(company.id).then(setVendors),
+        api.listCompanyAlerts(company.id).then(setAlerts),
+        api.getRiskPrediction(company.id).then(setRiskPrediction),
+        api.getStrategy(company.id).then(setStrategy),
+      ]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   useEffect(() => {
     if (simKeys.size === 0) { setSimResult(null); return; }
     api.simulateGapAnalysis(company.id, Array.from(simKeys)).then(setSimResult).catch(() => {});
@@ -241,7 +262,9 @@ export default function ComplianceGapAnalysis({
           <div className="meta">Here's what's happening with {company.name} today.</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={load}>Refresh</button>
+          <button className="secondary" style={{ marginTop: 0, fontSize: 12 }} onClick={refresh} disabled={refreshing}>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
           <button style={{ marginTop: 0, fontSize: 12 }} onClick={generateReport} disabled={generatingReport}>
             {generatingReport ? 'Generating…' : 'Executive report'}
           </button>

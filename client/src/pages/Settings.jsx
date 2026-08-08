@@ -5,6 +5,7 @@ import { IconBuilding, IconUser, IconTrash } from '../components/Icons';
 const SIZE_BANDS = ['1-10', '11-50', '51-200', '200+'];
 const DATA_TYPE_OPTIONS = ['customer_pii', 'payment_data', 'health_data', 'employee_data', 'usage_analytics'];
 const CLOUD_OPTIONS = ['aws', 'gcp', 'azure', 'on_prem', 'other'];
+const ROLE_LABEL = { owner: 'Owner', member: 'Member' };
 
 function toggleInArray(arr, value) {
   return arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
@@ -35,7 +36,19 @@ function SectionLabel({ children }) {
   );
 }
 
-export default function Settings({ company, userName, onCompanyUpdated, onAccountUpdated, onAlertsCreated }) {
+function PanelHeader({ icon, title, description }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}>
+      <div className="settings-panel-icon">{icon}</div>
+      <div>
+        <h3 style={{ margin: 0 }}>{title}</h3>
+        {description && <div className="meta" style={{ marginTop: 3 }}>{description}</div>}
+      </div>
+    </div>
+  );
+}
+
+export default function Settings({ company, userName, userEmail, userAvatarUrl, userRole, onCompanyUpdated, onAccountUpdated, onAlertsCreated }) {
   const [form, setForm] = useState(() => formFromCompany(company));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -49,6 +62,10 @@ export default function Settings({ company, userName, onCompanyUpdated, onAccoun
   const [savingAccount, setSavingAccount] = useState(false);
   const [accountSaved, setAccountSaved] = useState(false);
   const [accountError, setAccountError] = useState('');
+
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+  const avatarInputRef = useRef(null);
 
   async function submit(e) {
     e.preventDefault();
@@ -118,20 +135,101 @@ export default function Settings({ company, userName, onCompanyUpdated, onAccoun
     }
   }
 
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError('');
+    setAvatarBusy(true);
+    try {
+      const updated = await api.uploadAvatar(file);
+      onAccountUpdated?.(updated);
+    } catch (err) {
+      setAvatarError(err.message);
+    } finally {
+      setAvatarBusy(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  }
+
+  async function removeAvatar() {
+    setAvatarError('');
+    setAvatarBusy(true);
+    try {
+      const updated = await api.removeAvatar();
+      onAccountUpdated?.(updated);
+    } catch (err) {
+      setAvatarError(err.message);
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  const initials = (userName || userEmail || '?')[0]?.toUpperCase() || '?';
+
   return (
     <div>
       <h2 className="section-heading">Settings</h2>
-      <div className="section-subheading">Manage {company.name}'s profile and your own account.</div>
+      <div className="section-subheading">Manage your profile and {company.name}'s compliance profile.</div>
 
       <div className="panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <IconBuilding size={16} />
-          <h3 style={{ margin: 0 }}>Company profile</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <PanelHeader icon={<IconUser size={16} />} title="Your profile" description="Shown across the sidebar, reports, and to your teammates." />
+          {userRole && <span className="hero-readiness-tag" style={{ margin: 0, background: 'var(--accent-dim)', color: 'var(--accent)' }}>{ROLE_LABEL[userRole] || userRole}</span>}
         </div>
-        <div className="meta" style={{ marginTop: 4 }}>
-          Keep this up to date — changes here (new vendors, new AI systems, new data types) are what
-          drive the business-change alerts on your dashboard.
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 20, paddingBottom: 22, borderBottom: '1px solid var(--border)' }}>
+          <div className="settings-avatar-preview">
+            {userAvatarUrl ? <img src={userAvatarUrl} alt="" /> : <span>{initials}</span>}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 6 }}>Profile photo</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleAvatarChange}
+                disabled={avatarBusy}
+                style={{ display: 'none' }}
+                id="avatar-file-input"
+              />
+              <button type="button" className="secondary" style={{ marginTop: 0, fontSize: 12 }} disabled={avatarBusy} onClick={() => avatarInputRef.current?.click()}>
+                {avatarBusy ? 'Uploading…' : userAvatarUrl ? 'Replace photo' : 'Upload photo'}
+              </button>
+              {userAvatarUrl && (
+                <button type="button" className="secondary" style={{ marginTop: 0, fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }} disabled={avatarBusy} onClick={removeAvatar}>
+                  <IconTrash size={12} /> Remove
+                </button>
+              )}
+            </div>
+            <div className="tag-hint" style={{ marginTop: 6 }}>PNG, JPG, or WEBP, 500KB max.</div>
+            {avatarError && <div className="error" style={{ fontSize: 12 }}>{avatarError}</div>}
+          </div>
         </div>
+
+        <form onSubmit={saveAccountName} style={{ marginTop: 20 }}>
+          <div className="grid">
+            <div>
+              <label style={{ marginTop: 0 }}>Display name</label>
+              <input value={accountName} onChange={(e) => { setAccountName(e.target.value); setAccountSaved(false); }} placeholder="Your name" />
+            </div>
+            <div>
+              <label style={{ marginTop: 0 }}>Email</label>
+              <input value={userEmail || ''} disabled title="Contact support to change your email" />
+            </div>
+          </div>
+          {accountError && <div className="error">{accountError}</div>}
+          {accountSaved && <div className="data-notice data-notice-local" style={{ marginTop: 12 }}>Saved.</div>}
+          <button type="submit" disabled={savingAccount}>{savingAccount ? 'Saving…' : 'Save profile'}</button>
+        </form>
+      </div>
+
+      <div className="panel">
+        <PanelHeader
+          icon={<IconBuilding size={16} />}
+          title="Company profile"
+          description="Keep this up to date — changes here (new vendors, new AI systems, new data types) are what drive the business-change alerts on your dashboard."
+        />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
           <div className="settings-logo-preview">
@@ -223,12 +321,7 @@ export default function Settings({ company, userName, onCompanyUpdated, onAccoun
               <button
                 type="button"
                 key={dt}
-                className="secondary"
-                style={{
-                  marginTop: 0, padding: '4px 10px', fontSize: 12,
-                  background: form.data_types.includes(dt) ? 'var(--accent)' : 'transparent',
-                  color: form.data_types.includes(dt) ? 'white' : 'var(--text)',
-                }}
+                className={`settings-pill ${form.data_types.includes(dt) ? 'active' : ''}`}
                 onClick={() => setForm({ ...form, data_types: toggleInArray(form.data_types, dt) })}
               >
                 {dt.replace('_', ' ')}
@@ -242,12 +335,7 @@ export default function Settings({ company, userName, onCompanyUpdated, onAccoun
               <button
                 type="button"
                 key={c}
-                className="secondary"
-                style={{
-                  marginTop: 0, padding: '4px 10px', fontSize: 12,
-                  background: form.cloud_providers.includes(c) ? 'var(--accent)' : 'transparent',
-                  color: form.cloud_providers.includes(c) ? 'white' : 'var(--text)',
-                }}
+                className={`settings-pill ${form.cloud_providers.includes(c) ? 'active' : ''}`}
                 onClick={() => setForm({ ...form, cloud_providers: toggleInArray(form.cloud_providers, c) })}
               >
                 {c}
@@ -289,25 +377,6 @@ export default function Settings({ company, userName, onCompanyUpdated, onAccoun
           )}
           <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
         </form>
-      </div>
-
-      <div className="panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <IconUser size={16} />
-          <h3 style={{ margin: 0 }}>Your account</h3>
-        </div>
-        <div className="meta" style={{ marginTop: 4, marginBottom: 14 }}>
-          Your display name, shown in the sidebar and on generated reports.
-        </div>
-        <form onSubmit={saveAccountName} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={{ marginTop: 0 }}>Display name</label>
-            <input value={accountName} onChange={(e) => { setAccountName(e.target.value); setAccountSaved(false); }} placeholder="Your name" />
-          </div>
-          <button type="submit" disabled={savingAccount} style={{ marginTop: 0 }}>{savingAccount ? 'Saving…' : 'Save'}</button>
-        </form>
-        {accountError && <div className="error">{accountError}</div>}
-        {accountSaved && <div className="data-notice data-notice-local" style={{ marginTop: 12 }}>Saved.</div>}
       </div>
     </div>
   );

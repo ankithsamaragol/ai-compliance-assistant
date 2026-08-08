@@ -36,6 +36,20 @@ export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
   getMe: () => request('/auth/me'),
   updateMe: (name) => request('/auth/me', { method: 'PATCH', body: { name } }),
+  async uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const token = getToken();
+    const res = await fetch('/api/auth/me/avatar', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  },
+  removeAvatar: () => request('/auth/me/avatar', { method: 'DELETE' }),
 
   getTeam: () => request('/team'),
   inviteTeamMember: () => request('/team/invite', { method: 'POST' }),

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS avatar_data_url TEXT; -- personal profile photo, same inline data: URI pattern as companies.logo_data_url
 
 -- Team support: every account belongs to exactly one organization (its own,
 -- auto-created at signup, unless a signup joins via an invite token instead).

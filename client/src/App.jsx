@@ -14,6 +14,7 @@ export default function App() {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
+  const [userAvatarUrl, setUserAvatarUrl] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [connectBanner, setConnectBanner] = useState('');
 
@@ -36,6 +37,7 @@ export default function App() {
         setUserEmail(account.email);
         setUserName(account.name || '');
         setUserRole(account.role || '');
+        setUserAvatarUrl(account.avatar_data_url || '');
       }).catch(() => logout());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,11 +51,14 @@ export default function App() {
     setUserEmail('');
     setUserName('');
     setUserRole('');
+    setUserAvatarUrl('');
     setMenuOpen(false);
   }
 
+  // Deliberately doesn't touch openCompany — Team overlays whichever view was already showing
+  // (the company list, or a specific company's workspace), so its Back button can just close
+  // Team and land exactly where the user came from instead of always bouncing to the list.
   function openTeam() {
-    setOpenCompany(null);
     setShowTeam(true);
     setMenuOpen(false);
   }
@@ -75,7 +80,9 @@ export default function App() {
           {authed && (
             <div className="topbar-user" style={{ position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setMenuOpen((v) => !v)}>
-                <div className="topbar-avatar">{initials}</div>
+                <div className="topbar-avatar">
+                  {userAvatarUrl ? <img src={userAvatarUrl} alt="" /> : initials}
+                </div>
                 <div className="topbar-user-meta">
                   <span className="topbar-user-name">{displayName || 'Account'}</span>
                   <span className="topbar-user-role">{ROLE_LABEL[userRole] || 'Member'}</span>
@@ -107,24 +114,29 @@ export default function App() {
             setAuthed(true);
             setUserEmail(account?.email || '');
             setUserName(account?.name || '');
+            setUserAvatarUrl(account?.avatar_data_url || '');
             // The login/signup response doesn't include role (only /me does) — fetch it so the
             // sidebar/topbar show the real role from the very first render, not just after reload.
             api.getMe().then((me) => setUserRole(me.role || '')).catch(() => {});
           }} />
         )}
         {authed && !openCompany && !showTeam && <Dashboard onOpenCompany={setOpenCompany} />}
-        {authed && !openCompany && showTeam && <Team onBack={() => setShowTeam(false)} role={userRole} />}
-        {authed && openCompany && (
+        {authed && showTeam && <Team onBack={() => setShowTeam(false)} role={userRole} />}
+        {authed && openCompany && !showTeam && (
           <CompanyDetail
             company={openCompany}
             userName={userName}
             userEmail={userEmail}
             userRole={userRole}
+            userAvatarUrl={userAvatarUrl}
             onLogout={logout}
             onBack={() => setOpenCompany(null)}
             onOpenTeam={openTeam}
             onCompanyUpdated={setOpenCompany}
-            onAccountUpdated={(account) => setUserName(account?.name || '')}
+            onAccountUpdated={(account) => {
+              setUserName(account?.name || '');
+              setUserAvatarUrl(account?.avatar_data_url || '');
+            }}
           />
         )}
       </div>
