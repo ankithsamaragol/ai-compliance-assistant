@@ -696,6 +696,43 @@ just noted:
 Verified at 375px (mobile) and 768px (tablet) after the fix — sidebar collapse, dashboard cards,
 and both header rows all render cleanly at both widths, with no change to desktop layout.
 
+## Risk Register, and retiring the dead nav stubs
+
+The workspace sidebar had five "Coming soon" nav items — Risks, Frameworks, Controls, Tasks &
+Actions, Reports — left over from early scaffolding. Checking each one against what the app
+actually does: four of them (Frameworks, Controls, Tasks & Actions, Reports) were already fully
+covered elsewhere — Framework progress/checklist, the "Reuse across frameworks" cross-framework
+hints, "Today's priorities", and the Executive report button respectively. Building dedicated pages
+for those would have been a second view of the same data, not new capability, so they were removed
+outright (`client/src/pages/CompanyDetail.jsx`) rather than built out.
+
+**Risks was the one real gap.** The existing Vendor Risk Register and AI-generated Risk Register
+*document* don't cover what a real risk-management module gives you: a structured, editable log of
+company-specific risks — a single cloud provider dependency, a key-person dependency, a missing
+control — each with a likelihood/impact assessment, a mitigation, and a status. That's now a real
+tab (`client/src/pages/Risks.jsx`, `server/src/routes/risks.js`, new `risks` table).
+
+**AI estimates the two inputs; code computes the verdict — same split as every other feature this
+session.** `server/src/services/riskRegister.js`'s `detectRisks()` asks the model for `likelihood`
+and `impact` only (its honest judgment call, grounded in the company's actual profile, vendor
+register, and gap analysis — not generic industry boilerplate), and explicitly refuses to accept a
+`risk_level`/`severity` field from the model at all. `computeRiskLevel()` — a pure function, the
+standard 3x3 likelihood/impact matrix used across ISO 27001 and NIST risk management — is the only
+thing that ever assigns the final tier, whether a risk came from AI suggestion or a manual entry,
+and it's re-run automatically whenever either input is edited later so a risk can never drift out of
+sync with its own inputs. Verified against all 9 matrix cells before wiring in.
+
+**AI suggestion mirrors the vendor-detection UX exactly**, since users already understand that
+pattern: "Suggest risks" replaces only AI-sourced rows (`source = 'ai'`) and leaves manually-added
+ones untouched, so re-running it after editing the company profile doesn't discard anything the
+user typed in by hand. Verified live against Qualifix Technologies (real profile, real vendor
+register, real gap analysis): suggested risks were genuinely traceable to real data — missing ROPA
+and Incident Response Plan from the gap analysis, AWS/Stripe/Google OAuth from the real vendor
+register — not generic filler, each landing on the correct deterministic severity (e.g.
+high-likelihood + high-impact → `critical`). Also verified a manual risk survives a re-suggest,
+a status/likelihood edit correctly recomputes severity, and both flows render correctly end-to-end
+in the browser.
+
 ## Known limitations (v1)
 
 - Single account per company (no team seats yet)

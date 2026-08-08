@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import VendorRegister from './VendorRegister';
+import Risks from './Risks';
 import Evidence from './Evidence';
 import Timeline from './Timeline';
 import ComplianceGapAnalysis from './ComplianceGapAnalysis';
@@ -8,8 +9,8 @@ import ComplianceChat from './ComplianceChat';
 import Settings from './Settings';
 import Documents from './Documents';
 import {
-  IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding, IconBook,
-  IconShieldCheck, IconClipboard, IconCheckSquare, IconFileText, IconClock, IconSettings,
+  IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding,
+  IconShieldCheck, IconClipboard, IconClock, IconSettings,
   IconChevronDown,
 } from '../components/Icons';
 
@@ -17,13 +18,9 @@ const NAV = [
   { key: 'overview', label: 'Dashboard', icon: IconHome, enabled: true },
   { key: 'chat', label: 'AI Compliance Officer', icon: IconSparkle, enabled: true },
   { key: 'documents', label: 'Documents', icon: IconDocument, enabled: true },
-  { key: 'risks', label: 'Risks', icon: IconAlertTriangle, enabled: false },
+  { key: 'risks', label: 'Risks', icon: IconAlertTriangle, enabled: true },
   { key: 'vendors', label: 'Vendors', icon: IconBuilding, enabled: true },
-  { key: 'frameworks', label: 'Frameworks', icon: IconBook, enabled: false },
-  { key: 'controls', label: 'Controls', icon: IconShieldCheck, enabled: false },
   { key: 'evidence', label: 'Evidence', icon: IconClipboard, enabled: true },
-  { key: 'tasks', label: 'Tasks & Actions', icon: IconCheckSquare, enabled: false },
-  { key: 'reports', label: 'Reports', icon: IconFileText, enabled: false },
   { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: true },
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: true },
 ];
@@ -35,6 +32,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
   const [documents, setDocuments] = useState([]);
   const [vendorCount, setVendorCount] = useState(0);
   const [evidenceCount, setEvidenceCount] = useState(0);
+  const [riskCount, setRiskCount] = useState(0);
   const [framework, setFramework] = useState('');
   const [docType, setDocType] = useState('');
   const [provider, setProvider] = useState('');
@@ -60,6 +58,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
     }).catch((err) => setError(err.message));
     api.listVendors(company.id).then((v) => setVendorCount(v.length)).catch(() => {});
     api.listEvidence(company.id).then((v) => setEvidenceCount(v.length)).catch(() => {});
+    api.listRisks(company.id).then((v) => setRiskCount(v.length)).catch(() => {});
     refreshDocuments();
   }, [company.id]);
 
@@ -109,6 +108,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
                 <Icon size={16} />
                 <span>{tab.label}</span>
                 {tab.key === 'documents' && <span className="workspace-nav-badge">{realDocuments.length}</span>}
+                {tab.key === 'risks' && <span className="workspace-nav-badge">{riskCount}</span>}
                 {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
                 {tab.key === 'evidence' && <span className="workspace-nav-badge">{evidenceCount}</span>}
                 {!tab.enabled && <span className="workspace-nav-soon">Soon</span>}
@@ -172,6 +172,19 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
               activeDoc={activeDoc}
               setActiveDoc={setActiveDoc}
               onGapRefresh={() => setGapRefreshKey((k) => k + 1)}
+            />
+          )}
+
+          {activeTab === 'risks' && providers.length > 0 && (
+            <Risks
+              company={company}
+              providers={providers}
+              provider={provider}
+              setProvider={setProvider}
+              onChange={(count) => {
+                if (typeof count === 'number') setRiskCount(count);
+                else api.listRisks(company.id).then((v) => setRiskCount(v.length)).catch(() => {});
+              }}
             />
           )}
 

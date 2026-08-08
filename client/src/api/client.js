@@ -80,6 +80,12 @@ export const api = {
   detectVendors: (companyId, provider) => request('/vendors/detect', { method: 'POST', body: { companyId, provider } }),
   deleteVendor: (id) => request(`/vendors/${id}`, { method: 'DELETE' }),
 
+  listRisks: (companyId) => request(`/risks?companyId=${companyId}`),
+  suggestRisks: (companyId, provider) => request('/risks/suggest', { method: 'POST', body: { companyId, provider } }),
+  createRisk: (payload) => request('/risks', { method: 'POST', body: payload }),
+  updateRisk: (id, patch) => request(`/risks/${id}`, { method: 'PATCH', body: patch }),
+  deleteRisk: (id) => request(`/risks/${id}`, { method: 'DELETE' }),
+
   listEvidence: (companyId) => request(`/evidence?companyId=${companyId}`),
   deleteEvidence: (id) => request(`/evidence/${id}`, { method: 'DELETE' }),
   async uploadEvidence(companyId, file, provider) {

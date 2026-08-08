@@ -11,6 +11,7 @@ const chatRoutes = require('./routes/chat');
 const reportsRoutes = require('./routes/reports');
 const evidenceRoutes = require('./routes/evidence');
 const connectorsRoutes = require('./routes/connectors');
+const risksRoutes = require('./routes/risks');
 const { startConnectorScheduler } = require('./services/connectorScheduler');
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/evidence', evidenceRoutes);
 app.use('/api/connectors', connectorsRoutes);
+app.use('/api/risks', risksRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

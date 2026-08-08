@@ -133,6 +133,24 @@ CREATE TABLE IF NOT EXISTS profile_change_alerts (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS risks (
+  id            SERIAL PRIMARY KEY,
+  company_id    INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  title         TEXT NOT NULL,
+  description   TEXT,
+  category      TEXT NOT NULL DEFAULT 'other',  -- operational | technical | vendor | data | personnel | other
+  likelihood    TEXT NOT NULL,                  -- low | medium | high
+  impact        TEXT NOT NULL,                  -- low | medium | high
+  risk_level    TEXT NOT NULL,                  -- critical | high | medium | low — computed from likelihood x impact, never AI-assigned directly
+  mitigation    TEXT,
+  owner         TEXT,
+  status        TEXT NOT NULL DEFAULT 'open',   -- open | mitigated | accepted
+  source        TEXT NOT NULL DEFAULT 'manual', -- ai | manual
+  reasoning     TEXT,                            -- set when source = 'ai'
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);
@@ -140,4 +158,5 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_company ON chat_messages(company_id
 CREATE INDEX IF NOT EXISTS idx_evidence_company ON evidence(company_id);
 CREATE INDEX IF NOT EXISTS idx_connectors_company ON connectors(company_id);
 CREATE INDEX IF NOT EXISTS idx_score_snapshots_company ON score_snapshots(company_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_risks_company ON risks(company_id);
 CREATE INDEX IF NOT EXISTS idx_profile_change_alerts_company ON profile_change_alerts(company_id);

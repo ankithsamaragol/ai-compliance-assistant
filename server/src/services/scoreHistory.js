@@ -6,6 +6,7 @@ const TRIGGER_LABEL = {
   vendor_detected: 'Vendors detected',
   evidence_analyzed: 'Evidence analyzed',
   connector_synced: 'Connector synced',
+  risk_detected: 'Risks identified',
 };
 
 // Deterministic, not AI-composed — this fires on every one of the four triggers, so it has to be
