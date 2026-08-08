@@ -26,6 +26,7 @@ export const IconClipboard = (p) => <Svg {...p}><rect x="6" y="4" width="12" hei
 export const IconCheckSquare = (p) => <Svg {...p}><rect x="3.5" y="3.5" width="17" height="17" rx="2" /><path d="m8 12 3 3 6-6" /></Svg>;
 export const IconFileText = (p) => <Svg {...p}><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M9 13h6M9 17h6" /></Svg>;
 export const IconClock = (p) => <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></Svg>;
+export const IconHelp = (p) => <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.5 1.9-2.5 3.4" /><path d="M12 17.2h.01" /></Svg>;
 export const IconSettings = (p) => <Svg {...p}><circle cx="12" cy="12" r="3" /><path d="M19.4 13a7.97 7.97 0 0 0 0-2l2-1.4-2-3.4-2.3.9a8 8 0 0 0-1.7-1L15 3h-4l-.4 2.1a8 8 0 0 0-1.7 1l-2.3-.9-2 3.4L6.6 11a7.97 7.97 0 0 0 0 2l-2 1.4 2 3.4 2.3-.9a8 8 0 0 0 1.7 1L11 21h4l.4-2.1a8 8 0 0 0 1.7-1l2.3.9 2-3.4-2-1.4Z" /></Svg>;
 export const IconChevronDown = (p) => <Svg {...p}><path d="m6 9 6 6 6-6" /></Svg>;
 export const IconSearch = (p) => <Svg {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Svg>;

@@ -4,13 +4,16 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
 import Team from './pages/Team';
+import Help from './pages/Help';
 
 const ROLE_LABEL = { owner: 'Owner', member: 'Member' };
+const CONTACT_EMAIL = 'amaragolankiths@gmail.com';
 
 export default function App() {
   const [authed, setAuthed] = useState(!!getToken());
   const [openCompany, setOpenCompany] = useState(null);
   const [showTeam, setShowTeam] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -48,6 +51,7 @@ export default function App() {
     setAuthed(false);
     setOpenCompany(null);
     setShowTeam(false);
+    setShowHelp(false);
     setUserEmail('');
     setUserName('');
     setUserRole('');
@@ -60,6 +64,13 @@ export default function App() {
   // Team and land exactly where the user came from instead of always bouncing to the list.
   function openTeam() {
     setShowTeam(true);
+    setShowHelp(false);
+    setMenuOpen(false);
+  }
+
+  function openHelp() {
+    setShowHelp(true);
+    setShowTeam(false);
     setMenuOpen(false);
   }
 
@@ -91,6 +102,7 @@ export default function App() {
               {menuOpen && (
                 <div className="panel" style={{ position: 'absolute', right: 0, top: 46, minWidth: 160, padding: 8, margin: 0, zIndex: 20 }}>
                   <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={openTeam}>Team</button>
+                  <button className="secondary" style={{ width: '100%', marginTop: 8 }} onClick={openHelp}>Help</button>
                   <button className="secondary" style={{ width: '100%', marginTop: 8 }} onClick={logout}>Log out</button>
                 </div>
               )}
@@ -120,9 +132,10 @@ export default function App() {
             api.getMe().then((me) => setUserRole(me.role || '')).catch(() => {});
           }} />
         )}
-        {authed && !openCompany && !showTeam && <Dashboard onOpenCompany={setOpenCompany} />}
+        {authed && !openCompany && !showTeam && !showHelp && <Dashboard onOpenCompany={setOpenCompany} />}
         {authed && showTeam && <Team onBack={() => setShowTeam(false)} role={userRole} />}
-        {authed && openCompany && !showTeam && (
+        {authed && showHelp && <Help onBack={() => setShowHelp(false)} contactEmail={CONTACT_EMAIL} />}
+        {authed && openCompany && !showTeam && !showHelp && (
           <CompanyDetail
             company={openCompany}
             userName={userName}
@@ -132,6 +145,7 @@ export default function App() {
             onLogout={logout}
             onBack={() => setOpenCompany(null)}
             onOpenTeam={openTeam}
+            onOpenHelp={openHelp}
             onCompanyUpdated={setOpenCompany}
             onAccountUpdated={(account) => {
               setUserName(account?.name || '');
