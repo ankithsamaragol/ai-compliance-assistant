@@ -10,10 +10,12 @@ import Settings from './Settings';
 import Documents from './Documents';
 import {
   IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding,
-  IconShieldCheck, IconClipboard, IconClock, IconSettings,
+  IconShieldCheck, IconClipboard, IconClock, IconSettings, IconUsers,
   IconChevronDown,
 } from '../components/Icons';
 
+// 'team' is org-wide, not per-company, so it doesn't map to a tab inside this component's own
+// activeTab switch — clicking it bubbles up to App.jsx via onOpenTeam instead (see NAV.map below).
 const NAV = [
   { key: 'overview', label: 'Dashboard', icon: IconHome, enabled: true },
   { key: 'chat', label: 'AI Compliance Officer', icon: IconSparkle, enabled: true },
@@ -22,6 +24,7 @@ const NAV = [
   { key: 'vendors', label: 'Vendors', icon: IconBuilding, enabled: true },
   { key: 'evidence', label: 'Evidence', icon: IconClipboard, enabled: true },
   { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: true },
+  { key: 'team', label: 'Team', icon: IconUsers, enabled: true, external: true },
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: true },
 ];
 
@@ -35,6 +38,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
   const [vendorCount, setVendorCount] = useState(0);
   const [evidenceCount, setEvidenceCount] = useState(0);
   const [riskCount, setRiskCount] = useState(0);
+  const [teamCount, setTeamCount] = useState(0);
   const [framework, setFramework] = useState('');
   const [docType, setDocType] = useState('');
   const [provider, setProvider] = useState('');
@@ -61,6 +65,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
     api.listVendors(company.id).then((v) => setVendorCount(v.length)).catch(() => {});
     api.listEvidence(company.id).then((v) => setEvidenceCount(v.length)).catch(() => {});
     api.listRisks(company.id).then((v) => setRiskCount(v.length)).catch(() => {});
+    api.getTeam().then((v) => setTeamCount(v.length)).catch(() => {});
     refreshDocuments();
   }, [company.id]);
 
@@ -104,7 +109,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
               <div
                 key={tab.key}
                 className={`workspace-nav-item ${activeTab === tab.key ? 'active' : ''} ${tab.enabled ? '' : 'disabled'}`}
-                onClick={() => tab.enabled && setActiveTab(tab.key)}
+                onClick={() => tab.enabled && (tab.external ? onOpenTeam?.() : setActiveTab(tab.key))}
                 title={tab.enabled ? undefined : 'Coming soon'}
               >
                 <Icon size={16} />
@@ -113,6 +118,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
                 {tab.key === 'risks' && <span className="workspace-nav-badge">{riskCount}</span>}
                 {tab.key === 'vendors' && <span className="workspace-nav-badge">{vendorCount}</span>}
                 {tab.key === 'evidence' && <span className="workspace-nav-badge">{evidenceCount}</span>}
+                {tab.key === 'team' && <span className="workspace-nav-badge">{teamCount}</span>}
                 {!tab.enabled && <span className="workspace-nav-soon">Soon</span>}
               </div>
             );
@@ -130,8 +136,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
           <IconChevronDown size={14} />
           {userMenuOpen && (
             <div className="workspace-user-menu" onClick={(e) => e.stopPropagation()}>
-              <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={onOpenTeam}>Team</button>
-              <button className="secondary" style={{ width: '100%', marginTop: 8 }} onClick={onLogout}>Log out</button>
+              <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={onLogout}>Log out</button>
             </div>
           )}
         </div>
