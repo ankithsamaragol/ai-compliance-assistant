@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, setToken } from '../api/client';
 
+// A team-invite link points at this same page with ?teamInvite=<token> — distinct from the
+// unrelated `inviteCode` field below (that one gates who can sign up to the app at all; this one
+// decides which existing team a new signup joins). Read once on mount; a full page load is how
+// the link arrives since this app has no client-side router.
+const teamInviteToken = new URLSearchParams(window.location.search).get('teamInvite');
+
 export default function Auth({ onAuthed }) {
-  const [mode, setMode] = useState('login');
+  const [mode, setMode] = useState(teamInviteToken ? 'signup' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -10,6 +16,14 @@ export default function Auth({ onAuthed }) {
   const [dataAck, setDataAck] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [invitedOrgName, setInvitedOrgName] = useState('');
+
+  useEffect(() => {
+    if (!teamInviteToken) return;
+    api.getInvitePreview(teamInviteToken)
+      .then((preview) => setInvitedOrgName(preview.orgName))
+      .catch((err) => setError(err.message));
+  }, []);
 
   async function submit(e) {
     e.preventDefault();
@@ -18,7 +32,7 @@ export default function Auth({ onAuthed }) {
     try {
       const { token, account } = mode === 'login'
         ? await api.login(email, password)
-        : await api.signup(email, password, inviteCode, name);
+        : await api.signup(email, password, inviteCode, name, teamInviteToken || undefined);
       setToken(token);
       onAuthed(account);
     } catch (err) {
@@ -31,6 +45,11 @@ export default function Auth({ onAuthed }) {
   return (
     <div className="panel" style={{ maxWidth: 380, margin: '80px auto' }}>
       <h2 style={{ marginTop: 0 }}>{mode === 'login' ? 'Log in' : 'Create an account'}</h2>
+      {teamInviteToken && (
+        <div className="meta" style={{ marginBottom: 12 }}>
+          {invitedOrgName ? `You're joining ${invitedOrgName}.` : 'Checking your invite link…'}
+        </div>
+      )}
       <form onSubmit={submit}>
         {mode === 'signup' && (
           <>

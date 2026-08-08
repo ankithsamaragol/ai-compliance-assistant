@@ -3,12 +3,17 @@ import { api, getToken, setToken } from './api/client';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
+import Team from './pages/Team';
+
+const ROLE_LABEL = { owner: 'Owner', member: 'Member' };
 
 export default function App() {
   const [authed, setAuthed] = useState(!!getToken());
   const [openCompany, setOpenCompany] = useState(null);
+  const [showTeam, setShowTeam] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [connectBanner, setConnectBanner] = useState('');
 
@@ -30,6 +35,7 @@ export default function App() {
       api.getMe().then((account) => {
         setUserEmail(account.email);
         setUserName(account.name || '');
+        setUserRole(account.role || '');
       }).catch(() => logout());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,8 +45,16 @@ export default function App() {
     setToken(null);
     setAuthed(false);
     setOpenCompany(null);
+    setShowTeam(false);
     setUserEmail('');
     setUserName('');
+    setUserRole('');
+    setMenuOpen(false);
+  }
+
+  function openTeam() {
+    setOpenCompany(null);
+    setShowTeam(true);
     setMenuOpen(false);
   }
 
@@ -64,12 +78,13 @@ export default function App() {
                 <div className="topbar-avatar">{initials}</div>
                 <div className="topbar-user-meta">
                   <span className="topbar-user-name">{displayName || 'Account'}</span>
-                  <span className="topbar-user-role">Admin</span>
+                  <span className="topbar-user-role">{ROLE_LABEL[userRole] || 'Member'}</span>
                 </div>
               </div>
               {menuOpen && (
                 <div className="panel" style={{ position: 'absolute', right: 0, top: 46, minWidth: 160, padding: 8, margin: 0, zIndex: 20 }}>
-                  <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={logout}>Log out</button>
+                  <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={openTeam}>Team</button>
+                  <button className="secondary" style={{ width: '100%', marginTop: 8 }} onClick={logout}>Log out</button>
                 </div>
               )}
             </div>
@@ -88,16 +103,26 @@ export default function App() {
 
       <div className={`app-body ${!authed ? 'narrow' : ''} ${openCompany ? 'full-bleed' : ''}`}>
         {!authed && (
-          <Auth onAuthed={(account) => { setAuthed(true); setUserEmail(account?.email || ''); setUserName(account?.name || ''); }} />
+          <Auth onAuthed={(account) => {
+            setAuthed(true);
+            setUserEmail(account?.email || '');
+            setUserName(account?.name || '');
+            // The login/signup response doesn't include role (only /me does) — fetch it so the
+            // sidebar/topbar show the real role from the very first render, not just after reload.
+            api.getMe().then((me) => setUserRole(me.role || '')).catch(() => {});
+          }} />
         )}
-        {authed && !openCompany && <Dashboard onOpenCompany={setOpenCompany} />}
+        {authed && !openCompany && !showTeam && <Dashboard onOpenCompany={setOpenCompany} />}
+        {authed && !openCompany && showTeam && <Team onBack={() => setShowTeam(false)} role={userRole} />}
         {authed && openCompany && (
           <CompanyDetail
             company={openCompany}
             userName={userName}
             userEmail={userEmail}
+            userRole={userRole}
             onLogout={logout}
             onBack={() => setOpenCompany(null)}
+            onOpenTeam={openTeam}
             onCompanyUpdated={setOpenCompany}
             onAccountUpdated={(account) => setUserName(account?.name || '')}
           />

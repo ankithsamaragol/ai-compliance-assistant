@@ -23,8 +23,8 @@ const VALID_CATEGORIES = new Set(['operational', 'technical', 'vendor', 'data', 
 const VALID_STATUSES = new Set(['open', 'mitigated', 'accepted']);
 const SEVERITY_ORDER = "CASE risk_level WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END";
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -32,7 +32,7 @@ router.get('/', async (req, res, next) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
-    if (!(await loadOwnedCompany(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!(await loadOwnedCompany(companyId, req.account.orgId))) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
       `SELECT * FROM risks WHERE company_id = $1 ORDER BY ${SEVERITY_ORDER}, title`,
@@ -48,7 +48,7 @@ router.post('/', async (req, res, next) => {
       companyId, title, description, category, likelihood, impact, mitigation, owner,
     } = req.body;
     if (!companyId || !title) return res.status(400).json({ error: 'companyId and title are required' });
-    if (!(await loadOwnedCompany(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!(await loadOwnedCompany(companyId, req.account.orgId))) return res.status(404).json({ error: 'Company not found' });
 
     const lk = String(likelihood || '').toLowerCase();
     const im = String(impact || '').toLowerCase();
@@ -74,7 +74,7 @@ router.post('/suggest', detectLimiter, async (req, res, next) => {
     const { companyId, provider } = req.body;
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const [{ rows: vendors }, gapAnalysis] = await Promise.all([
@@ -114,8 +114,8 @@ router.post('/suggest', detectLimiter, async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
   try {
     const { rows: existingRows } = await pool.query(
-      `SELECT r.* FROM risks r JOIN companies c ON c.id = r.company_id WHERE r.id = $1 AND c.account_id = $2`,
-      [req.params.id, req.account.id],
+      `SELECT r.* FROM risks r JOIN companies c ON c.id = r.company_id WHERE r.id = $1 AND c.org_id = $2`,
+      [req.params.id, req.account.orgId],
     );
     const existing = existingRows[0];
     if (!existing) return res.status(404).json({ error: 'Risk not found' });
@@ -159,9 +159,9 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `DELETE FROM risks r USING companies c
-       WHERE r.id = $1 AND r.company_id = c.id AND c.account_id = $2
+       WHERE r.id = $1 AND r.company_id = c.id AND c.org_id = $2
        RETURNING r.id`,
-      [req.params.id, req.account.id],
+      [req.params.id, req.account.orgId],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Risk not found' });
     res.status(204).send();

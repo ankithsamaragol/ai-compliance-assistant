@@ -9,8 +9,8 @@ const { syncGithubConnector, upsertGithubEvidence } = require('../services/conne
 
 const router = express.Router();
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -20,7 +20,7 @@ router.get('/', requireAuth, async (req, res, next) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
@@ -36,13 +36,13 @@ router.get('/github/start', requireAuth, async (req, res, next) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     // OAuth redirects are plain browser navigations and can't carry an Authorization header, so
     // identity+ownership is carried in a short-lived signed state token instead, verified at the
     // callback below rather than via requireAuth.
-    const state = jwt.sign({ companyId: company.id, accountId: req.account.id }, process.env.JWT_SECRET, { expiresIn: '10m' });
+    const state = jwt.sign({ companyId: company.id, orgId: req.account.orgId }, process.env.JWT_SECRET, { expiresIn: '10m' });
     res.json({ url: github.getAuthorizeUrl(state) });
   } catch (err) { next(err); }
 });
@@ -51,7 +51,7 @@ router.post('/github/sync', requireAuth, async (req, res, next) => {
   try {
     const { companyId } = req.body;
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(`SELECT * FROM connectors WHERE company_id = $1 AND provider = 'github'`, [companyId]);
@@ -66,7 +66,7 @@ router.post('/github/sync', requireAuth, async (req, res, next) => {
 router.delete('/github', requireAuth, async (req, res, next) => {
   try {
     const { companyId } = req.query;
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     await pool.query(`DELETE FROM connectors WHERE company_id = $1 AND provider = 'github'`, [companyId]);
@@ -97,7 +97,7 @@ router.get('/github/callback', async (req, res) => {
   }
 
   try {
-    const company = await loadOwnedCompany(payload.companyId, payload.accountId);
+    const company = await loadOwnedCompany(payload.companyId, payload.orgId);
     if (!company) return backToApp('error');
 
     const { accessToken, scopes } = await github.exchangeCodeForToken(code);

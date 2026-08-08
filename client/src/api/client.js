@@ -31,10 +31,16 @@ async function request(path, { method = 'GET', body, raw = false } = {}) {
 }
 
 export const api = {
-  signup: (email, password, inviteCode, name) => request('/auth/signup', { method: 'POST', body: { email, password, inviteCode, name } }),
+  signup: (email, password, inviteCode, name, orgInviteToken) =>
+    request('/auth/signup', { method: 'POST', body: { email, password, inviteCode, name, orgInviteToken } }),
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
   getMe: () => request('/auth/me'),
   updateMe: (name) => request('/auth/me', { method: 'PATCH', body: { name } }),
+
+  getTeam: () => request('/team'),
+  inviteTeamMember: () => request('/team/invite', { method: 'POST' }),
+  getInvitePreview: (token) => request(`/team/invite/${token}`),
+  removeTeamMember: (accountId) => request(`/team/${accountId}`, { method: 'DELETE' }),
 
   listCompanies: () => request('/companies'),
   createCompany: (payload) => request('/companies', { method: 'POST', body: payload }),

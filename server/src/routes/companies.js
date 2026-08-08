@@ -30,8 +30,8 @@ const EDITABLE_FIELDS = [
 
 router.get('/', async (req, res, next) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM companies WHERE account_id = $1 ORDER BY created_at DESC', [
-      req.account.id,
+    const { rows } = await pool.query('SELECT * FROM companies WHERE org_id = $1 ORDER BY created_at DESC', [
+      req.account.orgId,
     ]);
     res.json(rows);
   } catch (err) { next(err); }
@@ -52,10 +52,10 @@ router.post('/', async (req, res, next) => {
 
     const { rows } = await pool.query(
       `INSERT INTO companies
-        (account_id, name, industry, size_band, country, contact_email, processes_pii, processes_eu_data, data_types, cloud_providers, tools_used, ai_systems_used, notes)
+        (org_id, name, industry, size_band, country, contact_email, processes_pii, processes_eu_data, data_types, cloud_providers, tools_used, ai_systems_used, notes)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [
-        req.account.id, name, industry, sizeBand, country, contactEmail || null,
+        req.account.orgId, name, industry, sizeBand, country, contactEmail || null,
         !!processesPii, !!processesEuData,
         dataTypes || [], cloudProviders || [], toolsUsed || [], aiSystemsUsed || [], notes || null,
       ],
@@ -66,8 +66,8 @@ router.post('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [
-      req.params.id, req.account.id,
+    const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [
+      req.params.id, req.account.orgId,
     ]);
     if (!rows[0]) return res.status(404).json({ error: 'Company not found' });
     res.json(rows[0]);
@@ -76,8 +76,8 @@ router.get('/:id', async (req, res, next) => {
 
 router.patch('/:id', async (req, res, next) => {
   try {
-    const { rows: existingRows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [
-      req.params.id, req.account.id,
+    const { rows: existingRows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [
+      req.params.id, req.account.orgId,
     ]);
     const before = existingRows[0];
     if (!before) return res.status(404).json({ error: 'Company not found' });
@@ -117,8 +117,8 @@ router.patch('/:id', async (req, res, next) => {
 
 router.get('/:id/alerts', async (req, res, next) => {
   try {
-    const { rows: companyRows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [
-      req.params.id, req.account.id,
+    const { rows: companyRows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [
+      req.params.id, req.account.orgId,
     ]);
     const company = companyRows[0];
     if (!company) return res.status(404).json({ error: 'Company not found' });
@@ -148,9 +148,9 @@ router.post('/:id/alerts/:alertId/dismiss', async (req, res, next) => {
     const { rows } = await pool.query(
       `UPDATE profile_change_alerts a SET dismissed = true
        FROM companies c
-       WHERE a.id = $1 AND a.company_id = $2 AND a.company_id = c.id AND c.account_id = $3
+       WHERE a.id = $1 AND a.company_id = $2 AND a.company_id = c.id AND c.org_id = $3
        RETURNING a.id`,
-      [req.params.alertId, req.params.id, req.account.id],
+      [req.params.alertId, req.params.id, req.account.orgId],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Alert not found' });
     res.status(204).send();
@@ -163,8 +163,8 @@ router.post('/:id/logo', logoUpload.single('logo'), async (req, res, next) => {
 
     const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
     const { rows } = await pool.query(
-      `UPDATE companies SET logo_data_url = $1, updated_at = now() WHERE id = $2 AND account_id = $3 RETURNING *`,
-      [dataUrl, req.params.id, req.account.id],
+      `UPDATE companies SET logo_data_url = $1, updated_at = now() WHERE id = $2 AND org_id = $3 RETURNING *`,
+      [dataUrl, req.params.id, req.account.orgId],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Company not found' });
     res.json(rows[0]);
@@ -174,8 +174,8 @@ router.post('/:id/logo', logoUpload.single('logo'), async (req, res, next) => {
 router.delete('/:id/logo', async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `UPDATE companies SET logo_data_url = NULL, updated_at = now() WHERE id = $1 AND account_id = $2 RETURNING *`,
-      [req.params.id, req.account.id],
+      `UPDATE companies SET logo_data_url = NULL, updated_at = now() WHERE id = $1 AND org_id = $2 RETURNING *`,
+      [req.params.id, req.account.orgId],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Company not found' });
     res.json(rows[0]);

@@ -20,8 +20,8 @@ const generateLimiter = rateLimit({
   message: { error: 'Generation rate limit reached. Try again later.' },
 });
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -38,7 +38,7 @@ router.get('/', async (req, res, next) => {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
@@ -59,7 +59,7 @@ router.post('/generate', generateLimiter, async (req, res, next) => {
     const def = getDocTypeDef(framework, docType);
     if (!def) return res.status(400).json({ error: 'Unknown framework/docType combination' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows: inserted } = await pool.query(
@@ -92,7 +92,7 @@ router.post('/consistency-check', generateLimiter, async (req, res, next) => {
     const { companyId, provider } = req.body;
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
@@ -112,8 +112,8 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT d.* FROM documents d JOIN companies c ON c.id = d.company_id
-       WHERE d.id = $1 AND c.account_id = $2`,
-      [req.params.id, req.account.id],
+       WHERE d.id = $1 AND c.org_id = $2`,
+      [req.params.id, req.account.orgId],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Document not found' });
     res.json(rows[0]);
@@ -124,8 +124,8 @@ router.get('/:id/export', async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT d.* FROM documents d JOIN companies c ON c.id = d.company_id
-       WHERE d.id = $1 AND c.account_id = $2`,
-      [req.params.id, req.account.id],
+       WHERE d.id = $1 AND c.org_id = $2`,
+      [req.params.id, req.account.orgId],
     );
     const doc = rows[0];
     if (!doc) return res.status(404).json({ error: 'Document not found' });

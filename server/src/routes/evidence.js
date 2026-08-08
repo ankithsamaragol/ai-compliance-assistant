@@ -40,8 +40,8 @@ const uploadLimiter = rateLimit({
   message: { error: 'Evidence upload rate limit reached. Try again later.' },
 });
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -50,7 +50,7 @@ router.get('/', async (req, res, next) => {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
@@ -70,7 +70,7 @@ router.post('/upload', uploadLimiter, upload.single('file'), async (req, res, ne
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     savedPath = req.file.path;
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows: inserted } = await pool.query(
@@ -126,9 +126,9 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `DELETE FROM evidence e USING companies c
-       WHERE e.id = $1 AND e.company_id = c.id AND c.account_id = $2
+       WHERE e.id = $1 AND e.company_id = c.id AND c.org_id = $2
        RETURNING e.company_id, e.filename`,
-      [req.params.id, req.account.id],
+      [req.params.id, req.account.orgId],
     );
     const deleted = rows[0];
     if (!deleted) return res.status(404).json({ error: 'Evidence not found' });

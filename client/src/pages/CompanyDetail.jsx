@@ -25,7 +25,9 @@ const NAV = [
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: true },
 ];
 
-export default function CompanyDetail({ company, onBack, userName, userEmail, onLogout, onCompanyUpdated, onAccountUpdated }) {
+const ROLE_LABEL = { owner: 'Owner', member: 'Member' };
+
+export default function CompanyDetail({ company, onBack, userName, userEmail, userRole, onLogout, onOpenTeam, onCompanyUpdated, onAccountUpdated }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -123,12 +125,13 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, on
           <div className="workspace-user-avatar">{initials}</div>
           <div className="workspace-user-meta">
             <span className="workspace-user-name">{displayName || 'Account'}</span>
-            <span className="workspace-user-role">Admin</span>
+            <span className="workspace-user-role">{ROLE_LABEL[userRole] || 'Member'}</span>
           </div>
           <IconChevronDown size={14} />
           {userMenuOpen && (
             <div className="workspace-user-menu" onClick={(e) => e.stopPropagation()}>
-              <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={onLogout}>Log out</button>
+              <button className="secondary" style={{ width: '100%', marginTop: 0 }} onClick={onOpenTeam}>Team</button>
+              <button className="secondary" style={{ width: '100%', marginTop: 8 }} onClick={onLogout}>Log out</button>
             </div>
           )}
         </div>

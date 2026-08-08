@@ -17,8 +17,8 @@ const reportLimiter = rateLimit({
   message: { error: 'Generation rate limit reached. Try again later.' },
 });
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -27,7 +27,7 @@ router.post('/executive', reportLimiter, async (req, res, next) => {
     const { companyId, provider } = req.body;
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const [gapAnalysis, { rows: vendors }, { rows: recentDocuments }] = await Promise.all([

@@ -17,8 +17,8 @@ const chatLimiter = rateLimit({
   message: { error: 'Chat rate limit reached. Try again later.' },
 });
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -27,7 +27,7 @@ router.get('/', async (req, res, next) => {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
@@ -45,7 +45,7 @@ router.post('/', chatLimiter, async (req, res, next) => {
       return res.status(400).json({ error: 'companyId and a non-empty message are required' });
     }
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const [{ rows: vendors }, gapAnalysis, { rows: documents }, { rows: historyRows }] = await Promise.all([
@@ -78,7 +78,7 @@ router.delete('/', async (req, res, next) => {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     await pool.query('DELETE FROM chat_messages WHERE company_id = $1', [companyId]);

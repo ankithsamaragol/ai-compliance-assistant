@@ -17,8 +17,8 @@ const detectLimiter = rateLimit({
   message: { error: 'Generation rate limit reached. Try again later.' },
 });
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -27,7 +27,7 @@ router.get('/', async (req, res, next) => {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
@@ -44,7 +44,7 @@ router.post('/detect', detectLimiter, async (req, res, next) => {
     const { companyId, provider } = req.body;
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const { vendors, model, provider: usedProvider } = await detectVendors({ company, provider });
@@ -82,9 +82,9 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `DELETE FROM vendors v USING companies c
-       WHERE v.id = $1 AND v.company_id = c.id AND c.account_id = $2
+       WHERE v.id = $1 AND v.company_id = c.id AND c.org_id = $2
        RETURNING v.id`,
-      [req.params.id, req.account.id],
+      [req.params.id, req.account.orgId],
     );
     if (!rows[0]) return res.status(404).json({ error: 'Vendor not found' });
     res.status(204).send();

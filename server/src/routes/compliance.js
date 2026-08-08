@@ -23,13 +23,13 @@ const interpretLimiter = rateLimit({
   message: { error: 'Generation rate limit reached. Try again later.' },
 });
 
-async function loadOwnedCompanyId(companyId, accountId) {
-  const { rows } = await pool.query('SELECT id FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompanyId(companyId, orgId) {
+  const { rows } = await pool.query('SELECT id FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] ? rows[0].id : null;
 }
 
-async function loadOwnedCompany(companyId, accountId) {
-  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND account_id = $2', [companyId, accountId]);
+async function loadOwnedCompany(companyId, orgId) {
+  const { rows } = await pool.query('SELECT * FROM companies WHERE id = $1 AND org_id = $2', [companyId, orgId]);
   return rows[0] || null;
 }
 
@@ -41,7 +41,7 @@ router.get('/gap-analysis', async (req, res, next) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
-    if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!(await loadOwnedCompanyId(companyId, req.account.orgId))) return res.status(404).json({ error: 'Company not found' });
 
     const [result, weekAgo, latestInsight] = await Promise.all([
       computeGapAnalysis(companyId),
@@ -68,7 +68,7 @@ router.post('/simulate', async (req, res, next) => {
   try {
     const { companyId, itemKeys } = req.body;
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
-    if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!(await loadOwnedCompanyId(companyId, req.account.orgId))) return res.status(404).json({ error: 'Company not found' });
     if (!Array.isArray(itemKeys) || itemKeys.some((k) => typeof k !== 'string')) {
       return res.status(400).json({ error: 'itemKeys must be an array of strings' });
     }
@@ -81,7 +81,7 @@ router.get('/risk-prediction', async (req, res, next) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
-    if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!(await loadOwnedCompanyId(companyId, req.account.orgId))) return res.status(404).json({ error: 'Company not found' });
 
     const { rows } = await pool.query(
       `SELECT created_at, framework_scores FROM score_snapshots WHERE company_id = $1 ORDER BY created_at`,
@@ -95,7 +95,7 @@ router.get('/strategy', async (req, res, next) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
-    if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!(await loadOwnedCompanyId(companyId, req.account.orgId))) return res.status(404).json({ error: 'Company not found' });
 
     const [gap, { rows }] = await Promise.all([
       computeGapAnalysis(companyId),
@@ -112,7 +112,7 @@ router.get('/timeline', async (req, res, next) => {
   try {
     const { companyId } = req.query;
     if (!companyId) return res.status(400).json({ error: 'companyId query param is required' });
-    if (!(await loadOwnedCompanyId(companyId, req.account.id))) return res.status(404).json({ error: 'Company not found' });
+    if (!(await loadOwnedCompanyId(companyId, req.account.orgId))) return res.status(404).json({ error: 'Company not found' });
 
     res.json(await getTimeline(companyId));
   } catch (err) { next(err); }
@@ -124,7 +124,7 @@ router.post('/interpret-regulation', interpretLimiter, async (req, res, next) =>
     if (!companyId) return res.status(400).json({ error: 'companyId is required' });
     if (!clauseText || !clauseText.trim()) return res.status(400).json({ error: 'clauseText is required' });
 
-    const company = await loadOwnedCompany(companyId, req.account.id);
+    const company = await loadOwnedCompany(companyId, req.account.orgId);
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     const gapAnalysis = await computeGapAnalysis(companyId);

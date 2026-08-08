@@ -10,9 +10,58 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS name TEXT;
 
+-- Team support: every account belongs to exactly one organization (its own,
+-- auto-created at signup, unless a signup joins via an invite token instead).
+-- All company ownership is scoped by org_id, not account_id directly, so
+-- teammates in the same org share the same companies.
+CREATE TABLE IF NOT EXISTS organizations (
+  id          SERIAL PRIMARY KEY,
+  name        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS org_members (
+  id          SERIAL PRIMARY KEY,
+  org_id      INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  account_id  INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL DEFAULT 'member',  -- owner | member
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (org_id, account_id)
+);
+
+CREATE TABLE IF NOT EXISTS org_invites (
+  id          SERIAL PRIMARY KEY,
+  org_id      INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  token       TEXT UNIQUE NOT NULL,
+  created_by  INTEGER NOT NULL REFERENCES accounts(id),
+  expires_at  TIMESTAMPTZ NOT NULL,
+  used_at     TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Backfill: every account that predates this table gets its own org, as owner.
+-- Iterates accounts directly (not companies) so an account with zero
+-- companies still gets an org — otherwise it couldn't create its first one.
+-- Idempotent: the LEFT JOIN/WHERE IS NULL skips accounts already migrated.
+DO $$
+DECLARE
+  acc RECORD;
+  new_org_id INTEGER;
+BEGIN
+  FOR acc IN
+    SELECT a.id, a.name, a.email FROM accounts a
+    LEFT JOIN org_members om ON om.account_id = a.id
+    WHERE om.id IS NULL
+  LOOP
+    INSERT INTO organizations (name) VALUES (COALESCE(acc.name, acc.email) || '''s Workspace')
+      RETURNING id INTO new_org_id;
+    INSERT INTO org_members (org_id, account_id, role) VALUES (new_org_id, acc.id, 'owner');
+  END LOOP;
+END $$;
+
 CREATE TABLE IF NOT EXISTS companies (
   id              SERIAL PRIMARY KEY,
-  account_id      INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  org_id          INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name            TEXT NOT NULL,
   industry        TEXT NOT NULL,
   size_band       TEXT NOT NULL,           -- e.g. '1-10', '11-50', '51-200', '200+'
@@ -28,6 +77,29 @@ CREATE TABLE IF NOT EXISTS companies (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- One-time migration for a pre-existing companies.account_id column (a live DB
+-- created before org support existed). Add/populate/drop rather than renaming
+-- in place: org ids don't align 1:1 with account ids (account ids have gaps
+-- from earlier deleted test accounts), so org_id is populated via an explicit
+-- join, never by reinterpreting the old column's raw integers. No-op on a
+-- fresh database (the CREATE TABLE above already created org_id directly).
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'companies' AND column_name = 'account_id'
+  ) THEN
+    ALTER TABLE companies ADD COLUMN org_id INTEGER;
+    UPDATE companies c SET org_id = om.org_id
+      FROM org_members om WHERE c.account_id = om.account_id;
+    ALTER TABLE companies ALTER COLUMN org_id SET NOT NULL;
+    ALTER TABLE companies DROP CONSTRAINT IF EXISTS companies_account_id_fkey;
+    ALTER TABLE companies DROP COLUMN account_id;
+    ALTER TABLE companies ADD CONSTRAINT companies_org_id_fkey
+      FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS contact_email TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS tools_used TEXT[] NOT NULL DEFAULT '{}';
@@ -151,7 +223,9 @@ CREATE TABLE IF NOT EXISTS risks (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_companies_account ON companies(account_id);
+CREATE INDEX IF NOT EXISTS idx_companies_org ON companies(org_id);
+CREATE INDEX IF NOT EXISTS idx_org_members_account ON org_members(account_id);
+CREATE INDEX IF NOT EXISTS idx_org_members_org ON org_members(org_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(company_id);
 CREATE INDEX IF NOT EXISTS idx_vendors_company ON vendors(company_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_company ON chat_messages(company_id);

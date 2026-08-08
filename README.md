@@ -733,9 +733,60 @@ high-likelihood + high-impact → `critical`). Also verified a manual risk survi
 a status/likelihood edit correctly recomputes severity, and both flows render correctly end-to-end
 in the browser.
 
+## Team support
+
+Every account was single-user until now — one login, one set of companies, no way for a second
+person to see the same compliance data. Real multi-user support, not a cosmetic label change:
+accounts belong to an `organizations` row via `org_members` (role `owner` | `member`), and every
+resource — companies, documents, vendors, risks, evidence, chat, connectors — is now scoped by
+`org_id` instead of `account_id`, so teammates in the same org genuinely share the same companies.
+
+**Invite is link-based, not email** (this app has no email infra) — an owner generates a token via
+`POST /api/team/invite` (7-day expiry, single-use), and a new person signs up through
+`?teamInvite=<token>` to join that org as a `member`, instead of getting their own fresh
+organization the way every signup did before. A public, unauthenticated
+`GET /api/team/invite/:token` endpoint returns just the org's name, so the signup screen can say
+"You're joining {org}'s team" without exposing anything else about it.
+
+**AI never assigned a role here either.** This is plain CRUD and role-gating — `requireOwner`
+middleware in `server/src/routes/team.js` checks `req.account.role === 'owner'` before invite/
+remove actions, no different from any other permission check in the app.
+
+**Migration was the real risk, not the feature.** `companies.account_id` → `companies.org_id` had
+to happen on a live database with real, already-generated demo data (Qualifix Technologies,
+Cal.com, Linear) without losing or misattributing any of it. Add/populate/drop, not rename-in-
+place: renaming the column and reinterpreting its raw integers would only be safe if
+`organizations.id` happened to align 1:1 with existing `accounts.id` — it doesn't, since account
+IDs have gaps from earlier deleted test accounts (confirmed on the live DB: accounts 3, 4, 5 exist,
+1 and 2 don't). Instead, every account without an org gets one created and is backfilled as
+`'owner'` first, then `companies.org_id` is populated via an explicit join on the *old* account_id
+values before that column is ever dropped — org_id is never guessed from raw numbers. Verified
+twice before touching the live database: once against a throwaway fresh-schema database, and once
+by restoring a `pg_dump` backup of the real pre-migration data into a scratch database and running
+the actual migration against it — confirming Qualifix/Cal.com/Linear all correctly landed in the
+same org as the account that already owned them, and that re-running the migration a second time
+is a safe no-op.
+
+An old JWT minted before this shipped won't carry an `orgId` — `middleware/auth.js` now rejects
+those explicitly with "Session outdated — please log in again" rather than letting every
+company-scoped route quietly 404 as if the data vanished.
+
+Verified end-to-end on the live database post-migration: the existing account's companies and
+role survived migration intact; an owner-generated invite link let a brand-new signup join the
+*same* org and see the *same* three companies (not a duplicate empty account); a member correctly
+gets `403` on invite/remove actions but can still view the roster; re-using an already-used invite
+token is rejected; an owner can't remove themselves; and both the topbar and the in-company
+sidebar correctly show "Owner" or "Member" instead of the old hardcoded "Admin" string, confirmed
+by logging in as the invited teammate in the browser and seeing Qualifix's real, already-built
+data (documents, vendors, the risk register) rather than an empty new account.
+
+**Explicit scope boundaries, not accidents:** no billing/seat limits, no per-company permission
+split (a member sees everything an owner sees), no promote/demote after joining, and no path for
+an existing single-user account to join a teammate's org later — joining a team means signing up
+fresh through that team's invite link.
+
 ## Known limitations (v1)
 
-- Single account per company (no team seats yet)
 - No versioning/diffing between regenerations of the same doc type
 - DOCX export handles headings, paragraphs, bullet/numbered lists, tables, and blockquotes —
   not a full markdown spec

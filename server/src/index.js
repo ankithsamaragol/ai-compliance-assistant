@@ -12,6 +12,7 @@ const reportsRoutes = require('./routes/reports');
 const evidenceRoutes = require('./routes/evidence');
 const connectorsRoutes = require('./routes/connectors');
 const risksRoutes = require('./routes/risks');
+const teamRoutes = require('./routes/team');
 const { startConnectorScheduler } = require('./services/connectorScheduler');
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/evidence', evidenceRoutes);
 app.use('/api/connectors', connectorsRoutes);
 app.use('/api/risks', risksRoutes);
+app.use('/api/team', teamRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
