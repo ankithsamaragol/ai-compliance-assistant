@@ -59,9 +59,9 @@ export default function App() {
     setMenuOpen(false);
   }
 
-  // Deliberately doesn't touch openCompany — Team overlays whichever view was already showing
-  // (the company list, or a specific company's workspace), so its Back button can just close
-  // Team and land exactly where the user came from instead of always bouncing to the list.
+  // Only reachable from the topbar dropdown, which only renders when no company is open (a
+  // company's own sidebar has its own Team/Help tabs instead — see CompanyDetail) — so this
+  // always means "show it over the company list," never over an open company's workspace.
   function openTeam() {
     setShowTeam(true);
     setShowHelp(false);
@@ -144,8 +144,6 @@ export default function App() {
             userAvatarUrl={userAvatarUrl}
             onLogout={logout}
             onBack={() => setOpenCompany(null)}
-            onOpenTeam={openTeam}
-            onOpenHelp={openHelp}
             onCompanyUpdated={setOpenCompany}
             onAccountUpdated={(account) => {
               setUserName(account?.name || '');

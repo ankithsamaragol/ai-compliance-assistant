@@ -8,14 +8,19 @@ import ComplianceGapAnalysis from './ComplianceGapAnalysis';
 import ComplianceChat from './ComplianceChat';
 import Settings from './Settings';
 import Documents from './Documents';
+import Team from './Team';
+import Help from './Help';
 import {
   IconHome, IconSparkle, IconDocument, IconAlertTriangle, IconBuilding,
   IconShieldCheck, IconClipboard, IconClock, IconSettings, IconUsers, IconHelp,
   IconChevronDown,
 } from '../components/Icons';
 
-// 'team' and 'help' are org-wide/global, not per-company, so they don't map to a tab inside this
-// component's own activeTab switch — clicking either bubbles up to App.jsx instead (see NAV.map below).
+const CONTACT_EMAIL = 'amaragolankiths@gmail.com';
+
+// Team and Help render as regular tabs here (not a bubbled-up full-page swap like an earlier
+// version did) specifically so the sidebar stays visible and every other tab stays one click
+// away — the same reason Settings doesn't unmount the whole workspace shell either.
 const NAV = [
   { key: 'overview', label: 'Dashboard', icon: IconHome, enabled: true },
   { key: 'chat', label: 'AI Compliance Officer', icon: IconSparkle, enabled: true },
@@ -24,14 +29,14 @@ const NAV = [
   { key: 'vendors', label: 'Vendors', icon: IconBuilding, enabled: true },
   { key: 'evidence', label: 'Evidence', icon: IconClipboard, enabled: true },
   { key: 'timeline', label: 'Timeline', icon: IconClock, enabled: true },
-  { key: 'team', label: 'Team', icon: IconUsers, enabled: true, external: true },
+  { key: 'team', label: 'Team', icon: IconUsers, enabled: true },
   { key: 'settings', label: 'Settings', icon: IconSettings, enabled: true },
-  { key: 'help', label: 'Help', icon: IconHelp, enabled: true, external: true },
+  { key: 'help', label: 'Help', icon: IconHelp, enabled: true },
 ];
 
 const ROLE_LABEL = { owner: 'Owner', member: 'Member' };
 
-export default function CompanyDetail({ company, onBack, userName, userEmail, userRole, userAvatarUrl, onLogout, onOpenTeam, onOpenHelp, onCompanyUpdated, onAccountUpdated }) {
+export default function CompanyDetail({ company, onBack, userName, userEmail, userRole, userAvatarUrl, onLogout, onCompanyUpdated, onAccountUpdated }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [catalog, setCatalog] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -110,12 +115,7 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
               <div
                 key={tab.key}
                 className={`workspace-nav-item ${activeTab === tab.key ? 'active' : ''} ${tab.enabled ? '' : 'disabled'}`}
-                onClick={() => {
-                  if (!tab.enabled) return;
-                  if (tab.key === 'team') onOpenTeam?.();
-                  else if (tab.key === 'help') onOpenHelp?.();
-                  else setActiveTab(tab.key);
-                }}
+                onClick={() => tab.enabled && setActiveTab(tab.key)}
                 title={tab.enabled ? undefined : 'Coming soon'}
               >
                 <Icon size={16} />
@@ -237,6 +237,8 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
 
           {activeTab === 'timeline' && <Timeline company={company} />}
 
+          {activeTab === 'team' && <Team onBack={() => setActiveTab('overview')} />}
+
           {activeTab === 'settings' && (
             <Settings
               company={company}
@@ -249,6 +251,8 @@ export default function CompanyDetail({ company, onBack, userName, userEmail, us
               onAlertsCreated={() => setGapRefreshKey((k) => k + 1)}
             />
           )}
+
+          {activeTab === 'help' && <Help onBack={() => setActiveTab('overview')} contactEmail={CONTACT_EMAIL} />}
       </main>
     </div>
   );
