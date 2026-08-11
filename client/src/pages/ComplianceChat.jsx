@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import ProviderNotice from '../components/ProviderNotice';
+import { IconSparkle, IconUser } from '../components/Icons';
+
+const SUGGESTIONS = [
+  "What's my biggest compliance gap right now?",
+  'Why is my highest-risk vendor classified that way?',
+  "What documents am I missing for GDPR?",
+];
 
 export default function ComplianceChat({ company, providers, provider, setProvider }) {
   const [messages, setMessages] = useState([]);
@@ -8,6 +15,7 @@ export default function ComplianceChat({ company, providers, provider, setProvid
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const bottomRef = useRef(null);
+  const textareaRef = useRef(null);
 
   useEffect(() => {
     api.listChatMessages(company.id).then(setMessages).catch((err) => setError(err.message));
@@ -15,12 +23,12 @@ export default function ComplianceChat({ company, providers, provider, setProvid
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, sending]);
 
   const currentProvider = providers.find((p) => p.key === provider);
 
-  async function send() {
-    const text = input.trim();
+  async function send(overrideText) {
+    const text = (overrideText ?? input).trim();
     if (!text || sending) return;
     setError('');
     setInput('');
@@ -52,6 +60,11 @@ export default function ComplianceChat({ company, providers, provider, setProvid
     }
   }
 
+  function useSuggestion(text) {
+    setInput(text);
+    textareaRef.current?.focus();
+  }
+
   return (
     <div className="panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -74,20 +87,34 @@ export default function ComplianceChat({ company, providers, provider, setProvid
 
       <div className="chat-window">
         {messages.length === 0 && (
-          <div className="meta" style={{ padding: '20px 0' }}>
-            No messages yet. Try: "Why is Stripe classified the way it is?" or "What's my biggest compliance gap right now?"
+          <div className="chat-empty">
+            <div className="chat-empty-icon"><IconSparkle size={22} /></div>
+            <div className="chat-empty-title">Ask me anything about {company.name}'s compliance status</div>
+            <div className="chat-empty-suggestions">
+              {SUGGESTIONS.map((s) => (
+                <button key={s} type="button" className="chat-suggestion-chip" onClick={() => useSuggestion(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((m) => (
-          <div key={m.id} className={`chat-bubble chat-${m.role}`}>
-            <div className="chat-role">{m.role === 'user' ? 'You' : 'Assistant'}</div>
-            <div className="chat-content">{m.content}</div>
+          <div key={m.id} className={`chat-row chat-row-${m.role}`}>
+            <div className={`chat-avatar chat-avatar-${m.role}`}>
+              {m.role === 'user' ? <IconUser size={14} /> : <IconSparkle size={14} />}
+            </div>
+            <div className={`chat-bubble chat-${m.role}`}>
+              <div className="chat-content">{m.content}</div>
+            </div>
           </div>
         ))}
         {sending && (
-          <div className="chat-bubble chat-assistant">
-            <div className="chat-role">Assistant</div>
-            <div className="chat-content meta">Thinking…</div>
+          <div className="chat-row chat-row-assistant">
+            <div className="chat-avatar chat-avatar-assistant"><IconSparkle size={14} /></div>
+            <div className="chat-bubble chat-assistant">
+              <div className="chat-typing"><span /><span /><span /></div>
+            </div>
           </div>
         )}
         <div ref={bottomRef} />
@@ -95,15 +122,16 @@ export default function ComplianceChat({ company, providers, provider, setProvid
 
       {error && <div className="error">{error}</div>}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+      <div className="chat-composer">
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask a question about this company's compliance status…"
-          style={{ minHeight: 44, flex: 1, resize: 'vertical' }}
+          rows={1}
         />
-        <button onClick={send} disabled={sending || !input.trim()} style={{ marginTop: 0 }}>
+        <button onClick={() => send()} disabled={sending || !input.trim()} style={{ marginTop: 0 }}>
           {sending ? 'Sending…' : 'Send'}
         </button>
       </div>
