@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import ProviderNotice from '../components/ProviderNotice';
+import PanelHeader from '../components/PanelHeader';
+import { IconAlertTriangle } from '../components/Icons';
 
 const LEVEL_LABEL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
 const CATEGORY_LABEL = {
@@ -80,27 +82,25 @@ export default function Risks({ company, providers, provider, setProvider, onCha
 
   return (
     <div className="panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h3 style={{ margin: 0 }}>Risk Register</h3>
-          <div className="meta" style={{ marginTop: 4 }}>
-            Company-specific risks — AI-suggested from your profile, vendors, and compliance gaps, or
-            added by hand. Severity is always computed from likelihood × impact, never picked directly.
+      <PanelHeader
+        icon={<IconAlertTriangle size={16} />}
+        title="Risk Register"
+        description="Company-specific risks — AI-suggested from your profile, vendors, and compliance gaps, or added by hand. Severity is always computed from likelihood × impact, never picked directly."
+        action={(
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <ProviderNotice provider={currentProvider} />
+            <select value={provider} onChange={(e) => setProvider(e.target.value)} style={{ width: 'auto' }}>
+              {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+            <button className="secondary" style={{ marginTop: 0 }} onClick={() => setFormOpen((v) => !v)}>
+              {formOpen ? 'Cancel' : '+ Add risk'}
+            </button>
+            <button onClick={suggest} disabled={suggesting} style={{ marginTop: 0 }}>
+              {suggesting ? 'Analyzing…' : risks.length ? 'Re-suggest risks' : 'Suggest risks'}
+            </button>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <ProviderNotice provider={currentProvider} />
-          <select value={provider} onChange={(e) => setProvider(e.target.value)} style={{ width: 'auto' }}>
-            {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
-          </select>
-          <button className="secondary" style={{ marginTop: 0 }} onClick={() => setFormOpen((v) => !v)}>
-            {formOpen ? 'Cancel' : '+ Add risk'}
-          </button>
-          <button onClick={suggest} disabled={suggesting} style={{ marginTop: 0 }}>
-            {suggesting ? 'Analyzing…' : risks.length ? 'Re-suggest risks' : 'Suggest risks'}
-          </button>
-        </div>
-      </div>
+        )}
+      />
 
       {error && <div className="error">{error}</div>}
 
@@ -148,38 +148,33 @@ export default function Risks({ company, providers, provider, setProvider, onCha
           profile and current gaps, or add one by hand.
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', marginTop: 14 }}>
-          <table className="vendor-table">
-            <thead>
-              <tr>
-                <th>Risk</th>
-                <th>Category</th>
-                <th>Severity</th>
-                <th>Mitigation</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {risks.map((r) => (
-                <tr key={r.id}>
-                  <td className="vendor-name" style={{ whiteSpace: 'normal', minWidth: 160 }}>
-                    {r.title}
-                    {r.description && <div className="vendor-reasoning" style={{ fontWeight: 400, marginTop: 2 }}>{r.description}</div>}
-                  </td>
-                  <td>{CATEGORY_LABEL[r.category] || r.category}</td>
-                  <td><span className={`tier-badge tier-${r.risk_level}`}>{LEVEL_LABEL[r.risk_level] || r.risk_level}</span></td>
-                  <td className="vendor-reasoning">{r.mitigation || '—'}</td>
-                  <td>
-                    <select value={r.status} onChange={(e) => setStatus(r, e.target.value)} style={{ width: 'auto', fontSize: 12 }}>
-                      {STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
-                    </select>
-                  </td>
-                  <td><button className="secondary" style={{ marginTop: 0, fontSize: 11, padding: '3px 8px' }} onClick={() => remove(r.id)}>Remove</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="vendor-card-grid">
+          {risks.map((r) => (
+            <div key={r.id} className="vendor-card">
+              <div className="vendor-card-head">
+                <div>
+                  <div className="vendor-card-name">{r.title}</div>
+                  <div className="vendor-card-category">{CATEGORY_LABEL[r.category] || r.category}</div>
+                </div>
+                <span className={`tier-badge tier-${r.risk_level}`}>{LEVEL_LABEL[r.risk_level] || r.risk_level}</span>
+              </div>
+
+              {r.description && <div className="vendor-card-reasoning">{r.description}</div>}
+              {r.mitigation && (
+                <div className="vendor-card-reasoning" style={{ marginTop: r.description ? 6 : 10 }}>
+                  <strong style={{ color: 'var(--text)' }}>Mitigation:</strong> {r.mitigation}
+                </div>
+              )}
+              {r.owner && <div className="vendor-card-reasoning" style={{ marginTop: 6 }}>Owner: {r.owner}</div>}
+
+              <div className="vendor-card-foot">
+                <select value={r.status} onChange={(e) => setStatus(r, e.target.value)} style={{ width: 'auto', fontSize: 12, padding: '5px 8px' }}>
+                  {STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+                </select>
+                <button className="secondary" style={{ marginTop: 0, fontSize: 11, padding: '3px 8px' }} onClick={() => remove(r.id)}>Remove</button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

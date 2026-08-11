@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { api, getToken } from '../api/client';
 import ProviderNotice from '../components/ProviderNotice';
-import { IconSearch } from '../components/Icons';
+import PanelHeader from '../components/PanelHeader';
+import { IconSearch, IconSparkle, IconDocument, IconCheckCircle } from '../components/Icons';
 
 const PAGE_SIZE = 6;
 
@@ -86,8 +87,12 @@ export default function Documents({
   return (
     <>
       <div className="panel">
-        <h3 style={{ marginTop: 0 }}>Generate a document</h3>
-        <div className="grid">
+        <PanelHeader
+          icon={<IconSparkle size={16} />}
+          title="Generate a document"
+          description="AI-drafted from this company's actual profile — not a generic template."
+        />
+        <div className="grid" style={{ marginTop: 14 }}>
           <div>
             <label>Framework</label>
             <select value={framework} onChange={(e) => {
@@ -121,9 +126,10 @@ export default function Documents({
       </div>
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <h3 style={{ margin: 0 }}>Documents</h3>
-          {realDocuments.length > 0 && (
+        <PanelHeader
+          icon={<IconDocument size={16} />}
+          title="Documents"
+          action={realDocuments.length > 0 && (
             <div className="doc-search" style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: 10, top: 9, color: 'var(--muted)' }}><IconSearch size={14} /></span>
               <input
@@ -134,7 +140,7 @@ export default function Documents({
               />
             </div>
           )}
-        </div>
+        />
 
         <div className="doc-grid">
           {pageDocuments.map((doc) => (
@@ -173,18 +179,16 @@ export default function Documents({
       </div>
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h3 style={{ margin: 0 }}>Cross-document consistency</h3>
-            <div className="meta" style={{ fontSize: 12, marginTop: 4 }}>
-              Checks whether retention period, breach-notification timing, and privacy contact agree
-              across your generated documents.
-            </div>
-          </div>
-          <button style={{ marginTop: 0 }} onClick={runConsistencyCheck} disabled={checkingConsistency || readyCount < 2}>
-            {checkingConsistency ? 'Checking…' : 'Check consistency'}
-          </button>
-        </div>
+        <PanelHeader
+          icon={<IconCheckCircle size={16} />}
+          title="Cross-document consistency"
+          description="Checks whether retention period, breach-notification timing, and privacy contact agree across your generated documents."
+          action={(
+            <button style={{ marginTop: 0 }} onClick={runConsistencyCheck} disabled={checkingConsistency || readyCount < 2}>
+              {checkingConsistency ? 'Checking…' : 'Check consistency'}
+            </button>
+          )}
+        />
         {readyCount < 2 && <div className="meta" style={{ marginTop: 8 }}>Generate at least 2 documents to run this check.</div>}
         {consistencyError && <div className="error">{consistencyError}</div>}
         {consistency && (
