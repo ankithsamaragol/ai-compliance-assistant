@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { api } from '../api/client';
 import { IconBuilding, IconUser, IconTrash } from '../components/Icons';
+import PanelHeader from '../components/PanelHeader';
 
 const SIZE_BANDS = ['1-10', '11-50', '51-200', '200+'];
 const DATA_TYPE_OPTIONS = ['customer_pii', 'payment_data', 'health_data', 'employee_data', 'usage_analytics'];
@@ -32,18 +33,6 @@ function SectionLabel({ children }) {
   return (
     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginTop: 26, marginBottom: 4 }}>
       {children}
-    </div>
-  );
-}
-
-function PanelHeader({ icon, title, description }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}>
-      <div className="settings-panel-icon">{icon}</div>
-      <div>
-        <h3 style={{ margin: 0 }}>{title}</h3>
-        {description && <div className="meta" style={{ marginTop: 3 }}>{description}</div>}
-      </div>
     </div>
   );
 }

@@ -38,3 +38,4 @@ export const IconUser = (p) => <Svg {...p}><circle cx="12" cy="8" r="3.5" /><pat
 export const IconUsers = (p) => <Svg {...p}><circle cx="9" cy="8" r="3" /><path d="M2.5 20c1-3.5 3.5-5.3 6.5-5.3s5.5 1.8 6.5 5.3" /><circle cx="17" cy="7.5" r="2.3" /><path d="M15.5 9.5c1.7.2 3 1.6 3.7 4" /></Svg>;
 export const IconImage = (p) => <Svg {...p}><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.8" /><path d="m4 17 5-5 4 4 3-3 4 4" /></Svg>;
 export const IconTrash = (p) => <Svg {...p}><path d="M4 7h16M9 7V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" /></Svg>;
+export const IconLink = (p) => <Svg {...p}><path d="M9.5 14.5 14.5 9.5" /><path d="M11 6.5 12.5 5a3.5 3.5 0 0 1 5 5L16 11.5" /><path d="M13 17.5 11.5 19a3.5 3.5 0 0 1-5-5L8 12.5" /></Svg>;

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import ProviderNotice from '../components/ProviderNotice';
+import PanelHeader from '../components/PanelHeader';
+import { IconLink, IconClipboard } from '../components/Icons';
 
 const STATUS_LABEL = { analyzed: 'Analyzed', pending: 'Analyzing…', failed: 'Analysis failed', unsupported: 'Not AI-readable' };
 const STATUS_CLASS = { analyzed: 'status-ready', pending: 'status-generating', failed: 'status-failed', unsupported: 'status-unsupported' };
@@ -116,19 +118,15 @@ export default function Evidence({ company, providers, provider, setProvider, on
   return (
     <div>
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h3 style={{ margin: 0 }}>Connected sources</h3>
-            <div className="meta" style={{ marginTop: 4 }}>
-              Auto-pull compliance signals directly from your tools instead of manually uploading proof.
-              v1 supports GitHub only, read-only (<code>read:org</code> scope) — checks org-wide 2FA
-              enforcement, default repository permission, and public-repo creation policy. No repo
-              content access.
-              Connected sources also re-sync automatically in the background (roughly every 24h,
-              while the server is running) — "Sync now" is there for an immediate check, not the
-              only way it stays current.
-            </div>
-          </div>
+        <PanelHeader
+          icon={<IconLink size={16} />}
+          title="Connected sources"
+          description="Auto-pull compliance signals directly from your tools instead of manually uploading proof. Currently supports GitHub, read-only."
+        />
+        <div className="meta" style={{ fontSize: 11.5, marginTop: 8, lineHeight: 1.6 }}>
+          Checks org-wide 2FA enforcement, default repository permission, and public-repo creation
+          policy — no repo content access. Re-syncs automatically in the background (roughly every
+          24h); "Sync now" is for an immediate check, not the only way it stays current.
         </div>
 
         <div className="evidence-card" style={{ marginTop: 14 }}>
@@ -159,27 +157,25 @@ export default function Evidence({ company, providers, provider, setProvider, on
       </div>
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h3 style={{ margin: 0 }}>Evidence</h3>
-          <div className="meta" style={{ marginTop: 4 }}>
-            Upload real evidence — AI reads it and maps it to specific compliance checklist items. Supported:
-            PDF, DOCX, TXT, MD, CSV, LOG, and JSON (10MB max). Screenshots aren't supported yet.
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <ProviderNotice provider={currentProvider} />
-          <select value={provider} onChange={(e) => setProvider(e.target.value)} style={{ width: 'auto' }}>
-            {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
-          </select>
-          <input ref={fileInputRef} type="file" onChange={handleFileChange} disabled={uploading} style={{ display: 'none' }} id="evidence-file-input" />
-          <button style={{ marginTop: 0 }} disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-            {uploading ? 'Analyzing…' : 'Upload evidence'}
-          </button>
-        </div>
-      </div>
+        <PanelHeader
+          icon={<IconClipboard size={16} />}
+          title="Evidence"
+          description="Upload real evidence — AI reads it and maps it to specific checklist items. PDF, DOCX, TXT, MD, CSV, LOG, JSON (10MB max)."
+          action={(
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <ProviderNotice provider={currentProvider} />
+              <select value={provider} onChange={(e) => setProvider(e.target.value)} style={{ width: 'auto' }}>
+                {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+              <input ref={fileInputRef} type="file" onChange={handleFileChange} disabled={uploading} style={{ display: 'none' }} id="evidence-file-input" />
+              <button style={{ marginTop: 0 }} disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+                {uploading ? 'Analyzing…' : 'Upload evidence'}
+              </button>
+            </div>
+          )}
+        />
 
-      {error && <div className="error">{error}</div>}
+        {error && <div className="error">{error}</div>}
 
       {items.length === 0 ? (
         <div className="meta" style={{ marginTop: 14 }}>
